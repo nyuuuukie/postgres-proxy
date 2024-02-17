@@ -40,3 +40,4 @@ logs/
 *.out
 *.out.dSYM
 
+test*.cpp
