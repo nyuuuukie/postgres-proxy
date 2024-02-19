@@ -41,3 +41,4 @@ logs/
 *.out.dSYM
 
 test*.cpp
+pg_proxy
