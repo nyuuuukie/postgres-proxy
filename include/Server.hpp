@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "Args.hpp"
 #include "Client.hpp"
@@ -24,6 +25,8 @@ class Server {
     
     void process(void);
     void addClient(void);
+    void deleteClient(Client *client);
+    
     int poll(void);
 
     void pollin(int fd);
@@ -33,6 +36,14 @@ class Server {
 
     int acceptClient(void);
     int initListenSocket(void);
-    
+
+    std::mutex _m_delClientsLock;
+    std::unordered_set<Client *> _delClientsSet;
+
+    void deleteClients(void);
+    void addToDelClientsSet(Client *client);
+
+    void checkClientTimeouts(void);
+
     bool isWorking() const;
 };

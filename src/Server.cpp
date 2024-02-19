@@ -50,9 +50,9 @@ void Server::start(void) {
             process();
         }
     
-        // checkTimeout();
+        checkClientTimeouts();
     
-        // delClients();
+        deleteClients();
     }
 
     // stopWorkers();
@@ -94,7 +94,8 @@ void Server::process(void) {
 }
 
 int Server::poll(void) {
-    int res = ::poll(_pollfds.data(), _pollfds.size(), 100000);
+    // int res = ::poll(_pollfds.data(), _pollfds.size(), 100000);
+    int res = ::poll(_pollfds.data(), _pollfds.size(), 0);
 
     if (res < 0) {
         if (isWorking()) {
@@ -206,7 +207,7 @@ Server::pollhup(int fd) {
         return ;
     }
 
-    // delete client
+    // add client to delete q
 }
 
 void
@@ -219,5 +220,64 @@ Server::pollerr(int fd) {
         return ;
     }
 
-    // delete client
+    // add client to delete q
 }
+
+
+void Server::deleteClient(Client *client) {
+
+    const int frontFd = client->getFrontSocket().getFd();
+    const int backFd = client->getBackSocket().getFd();
+    _clients[frontFd] = nullptr;
+    _clients[backFd] = nullptr;
+
+    for (int i = 0; i < _pollfds.size(); ++i) {
+        if (_pollfds[i].fd == frontFd || _pollfds[i].fd == backFd) {
+            _pollfds[i].fd = -1;
+        }
+    }
+
+}
+
+// Maybe should be moved to separate class/file
+// And maybe set should be used to avoid double free
+void Server::deleteClients(void) {
+
+    _m_delClientsLock.lock();
+
+    // Better option
+    for (const auto &client : _delClientsSet) {
+        deleteClient(client);
+        delete client;
+    }
+
+    _delClientsSet.clear();
+
+    _m_delClientsLock.unlock();
+}
+
+
+// Not sure what will be if worker tries to delete a client after main thread already deleted it.
+void Server::addToDelClientsSet(Client *client) {
+
+    _m_delClientsLock.lock();
+
+    _delClientsSet.insert(client);
+
+    _m_delClientsLock.unlock();
+}
+
+
+void Server::checkClientTimeouts(void) {
+
+    // Move to the constants or settings file
+    const auto maxTimeout = std::chrono::seconds(10);
+
+    // Get current time;
+    const auto currentTime = std::chrono::system_clock::now();
+    for (const auto& [fd, client] : _clients) {
+        if (currentTime - client->getLastTime() > maxTimeout) {
+            // add client to delete q
+        }
+    }
+}   
