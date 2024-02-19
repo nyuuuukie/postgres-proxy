@@ -8,6 +8,7 @@
 
 #include "Log.hpp"
 #include "Args.hpp"
+#include "Utils.hpp"
 
 class Socket {
     int         _fd;
@@ -46,7 +47,7 @@ public:
     int nonblock(void);
 
     int socket(void);
-    int connect(const sockaddr *, socklen_t);
+    int connect(const std::string &addr, int port);
     int listen(const std::string &addr, int port);
 
     void clear(void);

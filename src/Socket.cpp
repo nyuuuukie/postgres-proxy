@@ -112,9 +112,16 @@ Socket::socket() {
 }
 
 int
-Socket::connect(const sockaddr *addr, socklen_t len) {
+Socket::connect(const std::string &host, int port) {
 
-    if (::connect(_fd, addr, len) < 0) {
+    sockaddr_in addr = {};
+    if (resolveHostname(host, &addr) < 0) {
+        Log.error() << "Server::connectClient:: cannot resolve hostname" << Log.endl;
+        return -1;
+    }
+
+    addr.sin_port = htons(port);
+    if (::connect(_fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
         Log.error() << "Socket::connect failed" << Log.endl;
         return -1;
     }
