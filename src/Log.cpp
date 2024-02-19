@@ -107,6 +107,8 @@ Logger::operator<<(std::ostream& (*func)(std::ostream &)) {
         } else {
             func(std::cout);
         }
+
+        _askLevel = Levels::LOG_NOSPEC;
     }
     _m_lock_print.unlock();
 
