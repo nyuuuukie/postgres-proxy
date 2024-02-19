@@ -2,7 +2,6 @@
 
 #include "Socket.hpp"
 #include "Log.hpp"
-#include "Utils.hpp"
 
 class Client {
     // Front socket is the one that communicates with
@@ -10,6 +9,9 @@ class Client {
     // communicates with the backend server
     Socket _frontSock;
     Socket _backSock;
+
+    // time for timeout, updated every send or recv
+    time_point _lastTime;
 
 public:
     Client(void);
@@ -19,5 +21,7 @@ public:
 
     Socket &getFrontSocket(void);
     Socket &getBackSocket(void);
+
+    time_point getLastTime(void) const;
 
 };

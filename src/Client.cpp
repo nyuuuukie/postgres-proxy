@@ -8,14 +8,8 @@ int Client::connect(const std::string &host, int port) {
         return -1;
     }
     
-    sockaddr_in addr = {};
-    if (resolveHostname(host, &addr) < 0) {
-        Log.error() << "Server::connectClient:: cannot resolve hostname" << Log.endl;
-        return -1;
-    }
-
-    addr.sin_port = htons(port);
-    if (::connect(_backSock.getFd(), reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
+    if (_backSock.connect(host, port) < 0) {
+        Log.error() << "Server::connectClient:: cannot connect" << Log.endl;
         return -1;
     }
 
@@ -28,4 +22,8 @@ Socket & Client::getFrontSocket(void) {
 
 Socket & Client::getBackSocket(void) {
     return _backSock;
+}
+
+time_point Client::getLastTime(void) const {
+    return _lastTime;
 }
