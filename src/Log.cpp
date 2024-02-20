@@ -38,7 +38,7 @@ Logger::fileLogs(bool flag) {
     _fileLogs = flag;
     if (_fileLogs) {
         // Constants could be moved to another file with other setings
-        _logfile = _logDir + Time::now("%d-%m-%Y_%H-%M-%S") + ".log";
+        _logfile = _logDir + Time::nowFmtString("%d-%m-%Y_%H-%M-%S") + ".log";
 
         _out.open(_logfile, std::ios_base::out | std::ios_base::trunc);
 
@@ -63,7 +63,7 @@ Logger::print(Levels level) {
     _m_lock_print.lock();
     _askLevel = level;
 
-    *this << Time::now() << " ";
+    *this << Time::nowFmtString() << " ";
     const int idx = static_cast<int>(_askLevel);
     if (!titles[idx].empty()) {
         *this << titles[idx] << " ";
