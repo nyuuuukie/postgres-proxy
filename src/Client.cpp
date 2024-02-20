@@ -1,5 +1,10 @@
 #include "Client.hpp"
 
+Client::Client(void) : connected(true) {}
+
+Client::~Client(void) {}
+
+
 // Connects new client to the back server
 int Client::connect(const std::string &host, int port) {
 

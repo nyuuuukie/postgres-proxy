@@ -13,6 +13,9 @@ class Client {
     // time for timeout, updated every send or recv
     time_point _lastTime;
 
+
+    
+
 public:
     Client(void);
     ~Client(void);
@@ -24,4 +27,5 @@ public:
 
     time_point getLastTime(void) const;
 
+    std::atomic<bool> connected;
 };
