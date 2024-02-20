@@ -11,7 +11,7 @@ int Args::loglvl = loglvlDefault;
 std::string Args::host = hostDefault;
 std::string Args::logdir = logdirDefault;
 
-int backlog = SOMAXCONN;
+int Args::backlog = SOMAXCONN;
 
 // These functions won't be called outside of these file
 // so there's no need to place their prototypes in the header
