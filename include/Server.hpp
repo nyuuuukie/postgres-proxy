@@ -10,6 +10,7 @@
 
 #include "Args.hpp"
 #include "Client.hpp"
+#include "Globals.hpp"
 
 class Server {
 
@@ -42,6 +43,7 @@ class Server {
 
     void deleteClients(void);
     void addToDelClientsSet(Client *client);
+    void addPollfdData(struct pollfd pfd);
 
     void checkClientTimeouts(void);
 

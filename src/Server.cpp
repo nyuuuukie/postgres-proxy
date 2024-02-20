@@ -1,6 +1,5 @@
 #include "Server.hpp"
 
-
 // Creates a new listening socket, binds it to the address and the port
 // and starts listening on the port given.
 int Server::initListenSocket(void) {
@@ -15,7 +14,7 @@ int Server::initListenSocket(void) {
         return -1;
     }
 
-    _pollfds.push_back({ _listSock.getFd(), POLLIN, 0 });
+    addPollfdData({ _listSock.getFd(), POLLIN, 0 });
 }
 
 Server::Server(void) : _working(true) {
@@ -32,11 +31,15 @@ void Server::stop(void) {
     _working = false;
 }
 
+static void
+sigint_handler(int) {
+    Log.info() << "Server is stopping..." << Log.endl;
+    Globals::server.stop();
+}
 
 void Server::start(void) {
 
-    // Do later
-    // signal(SIGINT, sigint_handler);
+    signal(SIGINT, sigint_handler);
     
     if (initListenSocket() < 0) {
         stop();
@@ -44,6 +47,7 @@ void Server::start(void) {
     }
 
     // startWorkers();
+
     while (isWorking()) {
 
         if (poll() > 0) {
@@ -94,8 +98,7 @@ void Server::process(void) {
 }
 
 int Server::poll(void) {
-    // int res = ::poll(_pollfds.data(), _pollfds.size(), 100000);
-    int res = ::poll(_pollfds.data(), _pollfds.size(), 0);
+    int res = ::poll(_pollfds.data(), _pollfds.size(), 100000);
 
     if (res < 0) {
         if (isWorking()) {
@@ -121,6 +124,15 @@ int Server::acceptClient(void) {
     }
 
     return clientFd;
+}
+
+void Server::addPollfdData(struct pollfd pfd) {
+    auto it = std::find_if(_pollfds.begin(), _pollfds.end(), [](pollfd pfd){ pfd.fd == -1; });
+    if (it == _pollfds.end()) {
+        _pollfds.push_back(pfd);
+    } else {
+        *it = pfd;
+    }
 }
 
 void Server::addClient(void) {
@@ -151,20 +163,24 @@ void Server::addClient(void) {
         return ;
     }
     
-    // check if map already contains client with these fds ??
+    // Probably not happen, but
+    // check if map already contains these fds
     _clients[clientFrontSocketFd] = client;
     _clients[clientBackSocketFd] = client;
 
     // Add fds to pollfds vector
-    _pollfds.push_back({ clientFrontSocketFd, POLLIN | POLLOUT, 0 });
-    _pollfds.push_back({ clientBackSocketFd, POLLIN | POLLOUT, 0 });
+    addPollfdData({ clientFrontSocketFd, POLLIN | POLLOUT, 0 });
+    addPollfdData({ clientBackSocketFd, POLLIN | POLLOUT, 0 });
 
     Log.debug() << "Server::connect [" << clientFrontSocketFd << "] -> [" << clientBackSocketFd << "]" << Log.endl;
 }
 
 
+
 void
 Server::pollin(int fd) {
+
+    using Type = Event::Type;
 
     Client *client = _clients[fd];
     if (client == NULL) {
@@ -173,16 +189,19 @@ Server::pollin(int fd) {
 
     if (fd == client->getFrontSocket().getFd()) {
         // read request from the client
+        Globals::eventQueue.push({ client, Type::READ_REQUEST });
 
 
     } else if (fd == client->getBackSocket().getFd()) {
         // read response from the server
-
+        Globals::eventQueue.push({ client, Type::READ_RESPONSE });
     }
 }
 
 void
 Server::pollout(int fd) {
+    
+    using Type = Event::Type;
 
     Client *client = _clients[fd];
     if (client == NULL) {
@@ -191,9 +210,11 @@ Server::pollout(int fd) {
 
     if (fd == client->getFrontSocket().getFd()) {
         // send response to the client if have any
+        Globals::eventQueue.push({ client, Type::PASS_RESPONSE });
 
     } else if (fd == client->getBackSocket().getFd()) {
         // send request to the server if have any
+        Globals::eventQueue.push({ client, Type::PASS_REQUEST });
     }
 }
 
@@ -207,7 +228,7 @@ Server::pollhup(int fd) {
         return ;
     }
 
-    // add client to delete q
+    addToDelClientsSet(client);
 }
 
 void
@@ -220,7 +241,7 @@ Server::pollerr(int fd) {
         return ;
     }
 
-    // add client to delete q
+    addToDelClientsSet(client);
 }
 
 
@@ -239,22 +260,21 @@ void Server::deleteClient(Client *client) {
 
 }
 
-// Maybe should be moved to separate class/file
-// And maybe set should be used to avoid double free
-void Server::deleteClients(void) {
+void Server::checkClientTimeouts(void) {
 
-    _m_delClientsLock.lock();
+    // Move to the constants or settings file
+    const auto maxTimeout = std::chrono::seconds(10);
 
-    // Better option
-    for (const auto &client : _delClientsSet) {
-        deleteClient(client);
-        delete client;
+    // Get current time;
+    const auto currentTime = std::chrono::system_clock::now();
+    for (const auto& [fd, client] : _clients) {
+        if (currentTime - client->getLastTime() > maxTimeout) {
+            addToDelClientsSet(client);
+        }
     }
-
-    _delClientsSet.clear();
-
-    _m_delClientsLock.unlock();
 }
+
+
 
 
 // Not sure what will be if worker tries to delete a client after main thread already deleted it.
@@ -267,17 +287,23 @@ void Server::addToDelClientsSet(Client *client) {
     _m_delClientsLock.unlock();
 }
 
+// Maybe should be moved to separate class/file
+// And maybe set should be used to avoid double free
+void Server::deleteClients(void) {
 
-void Server::checkClientTimeouts(void) {
+    _m_delClientsLock.lock();
 
-    // Move to the constants or settings file
-    const auto maxTimeout = std::chrono::seconds(10);
+    // Remove all clients requests from event queue
+    Globals::eventQueue.remove_if([&set=_delClientsSet](Event e) {
+        return set.count(e.client) > 0;
+    });
 
-    // Get current time;
-    const auto currentTime = std::chrono::system_clock::now();
-    for (const auto& [fd, client] : _clients) {
-        if (currentTime - client->getLastTime() > maxTimeout) {
-            // add client to delete q
-        }
+    for (const auto &client : _delClientsSet) {
+        deleteClient(client);
+        delete client;
     }
-}   
+
+    _delClientsSet.clear();
+
+    _m_delClientsLock.unlock();
+}
