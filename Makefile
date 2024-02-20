@@ -28,7 +28,7 @@ OBJS_DIR     = .obj
 DEPS_DIR     = .deps
 INCLUDE_DIR  = include
 
-SRCS     =  Args.cpp Time.cpp main.cpp Log.cpp
+SRCS     =  $(shell ls ${SRCS_DIR})
 
 OBJS = $(addprefix $(OBJS_DIR)/, $(SRCS:.cpp=.o))
 DEPS = $(addprefix $(DEPS_DIR)/, $(SRCS:.cpp=.d))
