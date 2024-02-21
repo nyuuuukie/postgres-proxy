@@ -21,6 +21,10 @@ class Server {
 
     Socket _listSock;
 
+public:
+    Server(void);
+    ~Server(void);
+
     void start(void);
     void stop(void);
     
@@ -38,11 +42,11 @@ class Server {
     int acceptClient(void);
     int initListenSocket(void);
 
-    std::mutex _m_delClientsLock;
+    // std::mutex _m_delClientsLock;
     std::unordered_set<Client *> _delClientsSet;
 
     void deleteClients(void);
-    void addToDelClientsSet(Client *client);
+    // void addToDelClientsSet(Client *client);
     void addPollfdData(struct pollfd pfd);
 
     void checkClientTimeouts(void);

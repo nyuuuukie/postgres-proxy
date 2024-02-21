@@ -15,6 +15,8 @@ int Server::initListenSocket(void) {
     }
 
     addPollfdData({ _listSock.getFd(), POLLIN, 0 });
+
+    return 0;
 }
 
 Server::Server(void) : _working(true) {
@@ -32,16 +34,20 @@ void Server::stop(void) {
 }
 
 static void
-sigint_handler(int) {
+sigintHandler(int) {
     Log.info() << "Server is stopping..." << Log.endl;
     Globals::server.stop();
 }
 
 void Server::start(void) {
 
-    signal(SIGINT, sigint_handler);
+    Log.info() << "Server starting on " << Args::host << ":" << Args::port << Log.endl;
+    Log.info() << "Log level: " << Args::loglvl << Log.endl;
+    Log.info() << "Log directory: " << Args::logdir << Log.endl;
+
+    signal(SIGINT, sigintHandler);
     
-    if (initListenSocket() < 0) {
+    if (initListenSocket() == 0) {
         stop();
         return;
     }
@@ -127,7 +133,7 @@ int Server::acceptClient(void) {
 }
 
 void Server::addPollfdData(struct pollfd pfd) {
-    auto it = std::find_if(_pollfds.begin(), _pollfds.end(), [](pollfd pfd){ pfd.fd == -1; });
+    auto it = std::find_if(_pollfds.begin(), _pollfds.end(), [](pollfd pfd){ return pfd.fd == -1; });
     if (it == _pollfds.end()) {
         _pollfds.push_back(pfd);
     } else {
@@ -228,7 +234,8 @@ Server::pollhup(int fd) {
         return ;
     }
 
-    addToDelClientsSet(client);
+    client->connected = false;
+    // addToDelClientsSet(client);
 }
 
 void
@@ -241,7 +248,8 @@ Server::pollerr(int fd) {
         return ;
     }
 
-    addToDelClientsSet(client);
+    // addToDelClientsSet(client);
+    client->connected = false;
 }
 
 
@@ -252,11 +260,17 @@ void Server::deleteClient(Client *client) {
     _clients[frontFd] = nullptr;
     _clients[backFd] = nullptr;
 
-    for (int i = 0; i < _pollfds.size(); ++i) {
-        if (_pollfds[i].fd == frontFd || _pollfds[i].fd == backFd) {
-            _pollfds[i].fd = -1;
+    // This could be improved not to run through whole vector for every client
+    for (auto &p : _pollfds) {
+        if (p.fd == frontFd || p.fd == backFd) {
+            p.fd = -1;
         }
     }
+    // for (int i = 0; i < _pollfds.size(); ++i) {
+    //     if (_pollfds[i].fd == frontFd || _pollfds[i].fd == backFd) {
+    //         _pollfds[i].fd = -1;
+    //     }
+    // }
 
 }
 
@@ -269,7 +283,9 @@ void Server::checkClientTimeouts(void) {
     const auto currentTime = std::chrono::system_clock::now();
     for (const auto& [fd, client] : _clients) {
         if (currentTime - client->getLastTime() > maxTimeout) {
-            addToDelClientsSet(client);
+            // addToDelClientsSet(client);
+            Log.debug() << "Client is disconnecting..." << Log.endl;
+            client->connected = false;
         }
     }
 }
@@ -278,32 +294,39 @@ void Server::checkClientTimeouts(void) {
 
 
 // Not sure what will be if worker tries to delete a client after main thread already deleted it.
-void Server::addToDelClientsSet(Client *client) {
+// void Server::addToDelClientsSet(Client *client) {
 
-    _m_delClientsLock.lock();
+//     _m_delClientsLock.lock();
 
-    _delClientsSet.insert(client);
+//     _delClientsSet.insert(client);
 
-    _m_delClientsLock.unlock();
-}
+//     _m_delClientsLock.unlock();
+// }
 
 // Maybe should be moved to separate class/file
 // And maybe set should be used to avoid double free
 void Server::deleteClients(void) {
 
-    _m_delClientsLock.lock();
+    // _m_delClientsLock.lock();
+
+    std::unordered_set<Client *> deleteClients;
+    for (auto& [fd, client] : _clients) {
+        if (!client->connected) { // and not processing
+            deleteClients.insert(client);
+        }
+    }
 
     // Remove all clients requests from event queue
-    Globals::eventQueue.remove_if([&set=_delClientsSet](Event e) {
+    Globals::eventQueue.remove_if([&set=deleteClients](Event e) {
         return set.count(e.client) > 0;
     });
 
-    for (const auto &client : _delClientsSet) {
+    for (const auto &client : deleteClients) {
         deleteClient(client);
         delete client;
     }
 
-    _delClientsSet.clear();
+    // _delClientsSet.clear();
 
-    _m_delClientsLock.unlock();
+    // _m_delClientsLock.unlock();
 }
