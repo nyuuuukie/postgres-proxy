@@ -1,6 +1,6 @@
 #include "Client.hpp"
 
-Client::Client(void) : connected(true) {}
+Client::Client(void) : _lastTime(Time::now()), connected(true) {}
 
 Client::~Client(void) {}
 

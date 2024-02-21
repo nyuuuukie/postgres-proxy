@@ -28,4 +28,6 @@ public:
     time_point getLastTime(void) const;
 
     std::atomic<bool> connected;
+
+    // add processing prop
 };
