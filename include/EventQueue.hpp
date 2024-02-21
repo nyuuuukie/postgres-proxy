@@ -10,7 +10,7 @@ class safeQueue {
     typedef T&       reference_type;
     typedef const T& const_reference_type;
 
-    std::mutex _m_operationLock;
+    std::recursive_mutex _m_operationLock;
 
     std::list<T> _queue;
 
@@ -27,6 +27,10 @@ class safeQueue {
             lock();
             _queue.push_back(value);
             unlock();
+        }
+
+        bool empty(void) const {
+            return _queue.empty();
         }
 
         reference_type pop_front(void) {
