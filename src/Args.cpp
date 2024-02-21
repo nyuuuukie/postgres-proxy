@@ -1,6 +1,7 @@
 #include "Args.hpp"
 
 
+// Constants could be moved to a separate file
 const int portDefault = 8080;
 const int loglvlDefault = 2;
 const std::string hostDefault = "127.0.0.1";
@@ -33,7 +34,7 @@ int Args::parse(char **av) {
     const int size = args.size() - 1;
     for (int i = 0; i < size; ++i) {
                if (args[i] == "-h" || args[i] == "--host") {
-            // For now, host parameter could only contain ipv4 address
+            // For now host parameter could only contain ipv4 address
             // This could be improved to be able to store hostnames and ipv6 addresses
             parseHost(args[++i]);
         } else if (args[i] == "-p" || args[i] == "--port") {

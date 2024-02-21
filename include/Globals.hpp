@@ -1,8 +1,10 @@
 #pragma once
 
-#include "Server.hpp"
 #include "EventQueue.hpp"
 #include "Event.hpp"
+
+// Hierarchy could be changed to get rid of forward declarations
+class Server;
 
 namespace Globals {
 
@@ -10,3 +12,5 @@ namespace Globals {
     extern Server server;
 
 };
+
+#include "Server.hpp"
