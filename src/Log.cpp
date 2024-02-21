@@ -21,6 +21,9 @@ Logger::~Logger() {}
 void
 Logger::setLogDir(const std::string &dir) {
     _logDir = dir;
+    if (_logDir != "" && _logDir.back() != '/') {
+        _logDir += '/';
+    }
 }
 
 void
