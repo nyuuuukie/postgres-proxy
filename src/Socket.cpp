@@ -5,7 +5,7 @@ static const std::size_t BUFFER_SIZE = 65536;
 
 Socket::Socket(void) 
     : _fd(-1)
-    , _port(0)
+    // , _port(0)
     , _dataSize(0)
     , _dataPos(0) {}
 
@@ -25,25 +25,25 @@ Socket::setFd(int fd) {
     _fd = fd;
 }
 
-void
-Socket::setAddr(const std::string &addr) {
-    _addr = addr;
-}
+// void
+// Socket::setAddr(const std::string &addr) {
+//     _addr = addr;
+// }
 
-int
-Socket::getPort(void) const {
-    return _port;
-}
+// int
+// Socket::getPort(void) const {
+//     return _port;
+// }
 
-void
-Socket::setPort(std::size_t port) {
-    _port = port;
-}
+// void
+// Socket::setPort(std::size_t port) {
+//     _port = port;
+// }
 
-const std::string &
-Socket::getAddr(void) const {
-    return _addr;
-}
+// const std::string &
+// Socket::getAddr(void) const {
+//     return _addr;
+// }
 
 const std::string &
 Socket::getRem(void) const {
@@ -91,8 +91,8 @@ Socket::clear(void) {
 void
 Socket::reset(void) {
     setFd(-1);
-    setAddr("");
-    setPort(0);
+    // setAddr("");
+    // setPort(0);
     clear();
     _rem = "";
 }
@@ -147,21 +147,21 @@ Socket::listen(const std::string &addr, int port) {
     data.sin_port   = htons(port);
     data.sin_addr.s_addr = inet_addr(addr.c_str());
 
-    setAddr(addr);
-    setPort(port);
+    // setAddr(addr);
+    // setPort(port);
 
     if (::setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &i, sizeof(int)) < 0) {
-        Log.crit() << "Socket::setsockopt failed on [" << _fd << "], " << _addr << ":" << _port << Log.endl;
+        Log.crit() << "Socket::setsockopt failed on [" << _fd << "], " << addr << ":" << port << Log.endl;
         return -1;
     }
 
     if (::bind(_fd, (struct sockaddr *)&data, sizeof(data)) < 0) {
-        Log.crit() << "Socket::bind failed on [" << _fd << "], " << _addr << ":" << _port << Log.endl;
+        Log.crit() << "Socket::bind failed on [" << _fd << "], " << addr << ":" << port << Log.endl;
         return -1;
     }
 
     if (::listen(_fd, Args::backlog) < 0) {
-        Log.crit() << "Socket::listen failed on [" << _fd << "]," << _addr << ":" << _port << Log.endl;
+        Log.crit() << "Socket::listen failed on [" << _fd << "]," << addr << ":" << port << Log.endl;
         return -1;
     }
 
