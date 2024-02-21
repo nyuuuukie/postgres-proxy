@@ -15,6 +15,7 @@ namespace Args {
 
 
     extern int backlog;
+    extern int workersCount;
 
     int parse(char **av);
 

@@ -13,6 +13,7 @@ std::string Args::host = hostDefault;
 std::string Args::logdir = logdirDefault;
 
 int Args::backlog = SOMAXCONN;
+int Args::workersCount = 3;
 
 // These functions won't be called outside of these file
 // so there's no need to place their prototypes in the header
