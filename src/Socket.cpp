@@ -25,29 +25,15 @@ Socket::setFd(int fd) {
     _fd = fd;
 }
 
-// void
-// Socket::setAddr(const std::string &addr) {
-//     _addr = addr;
-// }
-
-// int
-// Socket::getPort(void) const {
-//     return _port;
-// }
-
-// void
-// Socket::setPort(std::size_t port) {
-//     _port = port;
-// }
-
-// const std::string &
-// Socket::getAddr(void) const {
-//     return _addr;
-// }
 
 const std::string &
 Socket::getRem(void) const {
     return _rem;
+}
+
+void
+Socket::setRem(const std::string &rem) {
+    _rem = rem;
 }
 
 void
@@ -180,7 +166,7 @@ int Socket::read(void) {
         
         _rem.append(buf, bytes);
         return bytes;
-    } 
+    }
 
     return bytes;
 }
@@ -188,7 +174,7 @@ int Socket::read(void) {
 int
 Socket::write(void) {
 
-    long bytes = ::write(_fd,  _data.c_str() + _dataPos, _dataSize - _dataPos);
+    long bytes = ::write(_fd, _data.c_str() + _dataPos, _dataSize - _dataPos);
     
     if (bytes > 0) {
         _dataPos += bytes;

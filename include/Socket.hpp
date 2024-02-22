@@ -13,9 +13,6 @@
 class Socket {
     int         _fd;
 
-    // int         _port;
-    // std::string _addr;
-
     std::string _rem;
 
     std::string _data;
@@ -27,18 +24,17 @@ public:
     ~Socket(void);
 
     void setFd(int);
-    // void setPort(std::size_t);
+    void setRem(const std::string &);
+
     void setDataPos(std::size_t);
     void setDataSize(std::size_t);
     void setData(const std::string &);
-    // void setAddr(const std::string &);
+
 
     int getFd(void) const;
-    // int getPort(void) const;
     std::size_t getDataPos(void) const;
     std::size_t getDataSize(void) const;
     const std::string &getData(void) const;
-    // const std::string &getAddr(void) const;
 
     const std::string &getRem(void) const;
 
