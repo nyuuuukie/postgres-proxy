@@ -7,17 +7,8 @@ NAME = pg_proxy
 ###################################################################################
 
 CXX       =   clang++
-CPPFLAGS  =   -Wall -Wextra -Werror -std=c++17
+CPPFLAGS  =   -Wall -Wextra -Werror -std=c++17 -g
 
-ifeq ($(shell uname), Linux)
-	ifeq ($(DEBUG), 1)
-		CPPFLAGS += -fstandalone-debug -g
-	endif
-else
-	ifeq ($(DEBUG), 1)
-		CPPFLAGS += -g
-	endif
-endif
 
 ###################################################################################
 #                              Directories & Files                                #
