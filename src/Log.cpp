@@ -96,7 +96,7 @@ Logger::error(void) {
 
 Logger &
 Logger::crit(void) {
-    print(Levels::LOG_CRIT) << "errno [" << errno << "]: " << strerror(errno) << Log.endl;
+    print(Levels::LOG_CRIT) << "errno(" << errno << "): " << strerror(errno) << Log.endl;
     return print(Levels::LOG_CRIT);
 }
 
