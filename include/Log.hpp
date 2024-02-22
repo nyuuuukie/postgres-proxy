@@ -19,8 +19,11 @@ public:
 private:
     bool        _fileLogs;
     bool        _stdoutLogs;
+
     std::string _logfile;
     std::string _logDir;
+    std::string _logPrefix;
+    
     Levels      _curLevel;
     Levels      _askLevel;
 
@@ -35,17 +38,20 @@ public:
     Logger(void);
     ~Logger(void);
 
-    void       setLevel(Levels level);
-    Logger     &info(void);
-    Logger     &debug(void);
-    Logger     &error(void);
-    Logger     &crit(void);
-    Logger     &print(Levels);
-    void        fileLogs(bool);
-    void        stdoutLogs(bool);
-    void        setLogDir(const std::string &);
+    Logger& info(void);
+    Logger& debug(void);
+    Logger& error(void);
+    Logger& crit(void);
+    Logger& print(Levels);
 
-    Logger &operator<<(std::ostream& (*func)(std::ostream &));
+    void fileLogs(bool);
+    void stdoutLogs(bool);
+
+    void setLevel(Levels level);
+    void setLogDir(const std::string &);
+    void setPrefix(const std::string &);
+
+    Logger& operator<<(std::ostream& (*func)(std::ostream &));
     
     template<typename T>
     Logger& operator<<(const T &val) {

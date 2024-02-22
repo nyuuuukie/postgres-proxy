@@ -12,6 +12,7 @@ Logger::Logger() : std::ostream(this),
     _stdoutLogs(true),
     _logfile(""),
     _logDir(""),
+    _logPrefix(""),
     _curLevel(Levels::LOG_NOSPEC),
     _askLevel(Levels::LOG_NOSPEC) {
 }
@@ -40,8 +41,8 @@ Logger::fileLogs(bool flag) {
 
     _fileLogs = flag;
     if (_fileLogs) {
-        // Constants could be moved to another file with other setings
-        _logfile = _logDir + Time::nowFmtString("%d-%m-%Y_%H-%M-%S") + ".log";
+        // Constants could be moved to another file with other settings
+        _logfile = _logDir + _logPrefix + Time::nowFmtString("%d-%m-%Y_%H-%M-%S") + ".log";
 
         _out.open(_logfile, std::ios_base::out | std::ios_base::trunc);
 
@@ -60,6 +61,12 @@ void
 Logger::setLevel(Levels level) {
     _curLevel = level;
 }
+
+void
+Logger::setPrefix(const std::string &prefix) {
+    _logPrefix = prefix;
+}
+
 
 Logger &
 Logger::print(Levels level) {
