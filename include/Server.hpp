@@ -11,6 +11,7 @@
 #include "Args.hpp"
 #include "Client.hpp"
 #include "Globals.hpp"
+#include "Worker.hpp"
 
 class Server {
 
@@ -21,35 +22,35 @@ class Server {
 
     Socket _listSock;
 
+    std::vector<std::thread> _workers;
+
 public:
     Server(void);
     ~Server(void);
 
     void start(void);
     void stop(void);
-    
-    void process(void);
-    void addClient(void);
-    void deleteClient(Client *client);
-    
-    int poll(void);
+    bool isWorking(void) const;
 
+private: 
+    int initListenSocket(void);
+    void process(void);
+
+    int poll(void);
     void pollin(int fd);
     void pollhup(int fd);
     void pollerr(int fd);
     void pollout(int fd);
 
     int acceptClient(void);
-    int initListenSocket(void);
-
-    // std::mutex _m_delClientsLock;
-    std::unordered_set<Client *> _delClientsSet;
-
+    void addClient(void);
     void deleteClients(void);
-    // void addToDelClientsSet(Client *client);
     void addPollfdData(struct pollfd pfd);
+    void deleteClient(Client *client);
 
     void checkClientTimeouts(void);
 
-    bool isWorking() const;
+    void startWorkers(void);
+    void stopWorkers(void);
+
 };

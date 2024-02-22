@@ -9,7 +9,7 @@ int Server::initListenSocket(void) {
         return -1;
     }
 
-    if (_listSock.listen(Args::host, Args::port) < 0) {
+    if (_listSock.listen(Args::proxyHost, Args::proxyPort) < 0) {
         Log.crit() << "Server:: listen failed" << Log.endl;
         return -1;
     }
@@ -33,26 +33,28 @@ void Server::stop(void) {
     _working = false;
 }
 
-static void
-sigintHandler(int) {
+void sigintHandler(int) {
+    std::cout << std::endl;
     Log.info() << "Server is stopping..." << Log.endl;
+
     Globals::server.stop();
 }
 
 void Server::start(void) {
 
-    Log.info() << "Server starting on " << Args::host << ":" << Args::port << Log.endl;
+    Log.info() << "Server starting on " << Args::proxyHost << ":" << Args::proxyPort << Log.endl;
+    Log.info() << "Proxying to " << Args::targetHost << ":" << Args::targetPort << Log.endl;
     Log.info() << "Log level: " << Args::loglvl << Log.endl;
     Log.info() << "Log directory: " << Args::logdir << Log.endl;
 
     signal(SIGINT, sigintHandler);
     
-    if (initListenSocket() == 0) {
+    if (initListenSocket() < 0) {
         stop();
         return;
     }
 
-    // startWorkers();
+    startWorkers();
 
     while (isWorking()) {
 
@@ -60,13 +62,30 @@ void Server::start(void) {
             process();
         }
     
-        checkClientTimeouts();
+        // checkClientTimeouts();
     
         deleteClients();
     }
 
-    // stopWorkers();
+    stopWorkers();
 }
+
+void Server::startWorkers(void) {
+
+    for (int i = 0; i < Args::workersCount; ++i) {
+        // add args if needed
+        _workers.push_back(std::thread(workerCycle));
+    }
+
+}
+
+void Server::stopWorkers(void) {
+
+    for (auto &worker : _workers) {
+        worker.join();
+    }
+}
+
 
 void Server::process(void) {
 
@@ -111,6 +130,7 @@ int Server::poll(void) {
             Log.crit() << "Server::poll" << Log.endl;
         }
     }
+
     return res;
 }
 
@@ -123,17 +143,15 @@ int Server::acceptClient(void) {
     struct sockaddr_in clientData;
     socklen_t clientLen = sizeof(clientData);
     const int clientFd = accept(servFd, reinterpret_cast<sockaddr *>(&clientData), &clientLen);
-    
-    if (clientFd < 0) {
-        Log.crit() << "Server::connect::accept" << Log.endl;
-        return -1;
-    }
 
     return clientFd;
 }
 
 void Server::addPollfdData(struct pollfd pfd) {
-    auto it = std::find_if(_pollfds.begin(), _pollfds.end(), [](pollfd pfd){ return pfd.fd == -1; });
+    auto it = std::find_if(_pollfds.begin(), _pollfds.end(), [](pollfd pfd) { 
+        return pfd.fd == -1; 
+    });
+
     if (it == _pollfds.end()) {
         _pollfds.push_back(pfd);
     } else {
@@ -144,19 +162,24 @@ void Server::addPollfdData(struct pollfd pfd) {
 void Server::addClient(void) {
     
     Client *client = new Client();
-    if (client == NULL) {
-        Log.crit() << "Server::Cannot allocate memory for Client" << Log.endl;
+    if (client == nullptr) {
+        Log.crit() << "Server::Cannot allocate memory for client" << Log.endl;
         return ;
     }
 
     const int clientFrontSocketFd = acceptClient();
+    if (clientFrontSocketFd < 0) {
+        Log.crit() << "Server::accept failed" << Log.endl;
+        delete client;
+        return ;
+    }
 
     Socket &frontSock = client->getFrontSocket();
     frontSock.setFd(clientFrontSocketFd);
 
-    if (client->connect(Args::host, Args::port) < 0) {
+    if (client->connect(Args::targetHost, Args::targetPort) < 0) {
         Log.error() << "Server::connect failed " << Log.endl;
-        Log.error() << "Server::connect endpoint:" << Args::host << ":" << Args::port << Log.endl;
+        Log.error() << "Server::connect endpoint: " << Args::targetHost << ":" << Args::targetPort << Log.endl;
         delete client;
         return ;
     }
@@ -189,17 +212,23 @@ Server::pollin(int fd) {
     using Type = Event::Type;
 
     Client *client = _clients[fd];
-    if (client == NULL) {
+    if (client == nullptr) {
         return ;
     }
 
     if (fd == client->getFrontSocket().getFd()) {
         // read request from the client
+        // check memory allocation
+        Log.debug() << "Server::pollin [" << fd << "]: rreq added to queue" << Log.endl;
+        // Globals::eventQueue.push(new Event({ client, Type::READ_REQUEST }));
         Globals::eventQueue.push({ client, Type::READ_REQUEST });
 
 
     } else if (fd == client->getBackSocket().getFd()) {
         // read response from the server
+        // check memory allocation
+        Log.debug() << "Server::pollin [" << fd << "]: rres added to queue" << Log.endl;
+        // Globals::eventQueue.push( new Event({ client, Type::READ_RESPONSE }) );
         Globals::eventQueue.push({ client, Type::READ_RESPONSE });
     }
 }
@@ -207,30 +236,33 @@ Server::pollin(int fd) {
 void
 Server::pollout(int fd) {
     
-    using Type = Event::Type;
+    // using Type = Event::Type;
 
     Client *client = _clients[fd];
-    if (client == NULL) {
+    if (client == nullptr) {
         return ;
     }
 
     if (fd == client->getFrontSocket().getFd()) {
         // send response to the client if have any
-        Globals::eventQueue.push({ client, Type::PASS_RESPONSE });
+        // check memory allocation
+        // Globals::eventQueue.push( new Event({ client, Type::PASS_RESPONSE }) );
 
     } else if (fd == client->getBackSocket().getFd()) {
         // send request to the server if have any
-        Globals::eventQueue.push({ client, Type::PASS_REQUEST });
+        // check memory allocation
+        // Globals::eventQueue.push( new Event({ client, Type::PASS_REQUEST }) );
     }
 }
 
 void
 Server::pollhup(int fd) {
 
-    Log.crit() << "Server::pollhup [" << fd << "]" << Log.endl;
+    Log.debug() << "Server::pollhup [" << fd << "]" << Log.endl;
+    Log.debug() << "Server::pollhup client has probably closed connection" << Log.endl;
 
     Client *client = _clients[fd];
-    if (client == NULL) {
+    if (client == nullptr) {
         return ;
     }
 
@@ -244,7 +276,7 @@ Server::pollerr(int fd) {
     Log.crit() << "Server::pollerr [" << fd << "]" << Log.endl;
 
     Client *client = _clients[fd];
-    if (client == NULL) {
+    if (client == nullptr) {
         return ;
     }
 
@@ -277,7 +309,7 @@ void Server::deleteClient(Client *client) {
 void Server::checkClientTimeouts(void) {
 
     // Move to the constants or settings file
-    const auto maxTimeout = std::chrono::seconds(10);
+    const auto maxTimeout = std::chrono::seconds(20);
 
     // Get current time;
     const auto currentTime = std::chrono::system_clock::now();
@@ -311,7 +343,7 @@ void Server::deleteClients(void) {
 
     std::unordered_set<Client *> deleteClients;
     for (auto& [fd, client] : _clients) {
-        if (!client->connected) { // and not processing
+        if (client && !client->connected) { // and not processing
             deleteClients.insert(client);
         }
     }
