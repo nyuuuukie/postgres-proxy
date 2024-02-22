@@ -8,11 +8,13 @@
 #include "Log.hpp"
 
 namespace Args {
-    extern int port;
+    extern int targetPort;
     extern int loglvl;
-    extern std::string host;
+    extern std::string targetHost;
     extern std::string logdir;
 
+    extern std::string proxyHost;
+    extern int proxyPort;
 
     extern int backlog;
     extern int workersCount;

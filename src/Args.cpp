@@ -2,25 +2,31 @@
 
 
 // Constants could be moved to a separate file
-const int portDefault = 8080;
+const int proxyPortDefault = 8080;
 const int loglvlDefault = 2;
-const std::string hostDefault = "127.0.0.1";
+const std::string proxyHostDefault = "127.0.0.1";
 const std::string logdirDefault = "log";
 
-int Args::port = portDefault;
+const int targetPortDefault = 5432;
+const std::string targetHostDefault = "127.0.0.1";
+
+int Args::targetPort = targetPortDefault;
 int Args::loglvl = loglvlDefault;
-std::string Args::host = hostDefault;
+std::string Args::targetHost = targetHostDefault;
 std::string Args::logdir = logdirDefault;
+
+std::string Args::proxyHost = proxyHostDefault;
+int Args::proxyPort = proxyPortDefault;
 
 int Args::backlog = SOMAXCONN;
 int Args::workersCount = 3;
 
 // These functions won't be called outside of these file
 // so there's no need to place their prototypes in the header
-void parseHost(const std::string &arg);
-void parsePort(const std::string &arg);
-void parseDir(const std::string &arg);
-void parseLogLevel(const std::string &arg);
+std::string parseHost(const std::string &arg, const std::string &def);
+std::string parseDir(const std::string &arg, const std::string &def);
+int         parseLogLevel(const std::string &arg, int def);
+int         parsePort(const std::string &arg, int def);
 
 int Args::parse(char **av) {
 
@@ -34,16 +40,20 @@ int Args::parse(char **av) {
     // but a good solution would be to throw an error here.
     const int size = args.size() - 1;
     for (int i = 0; i < size; ++i) {
-               if (args[i] == "-h" || args[i] == "--host") {
+               if (args[i] == "-th" || args[i] == "--target-host") {
             // For now host parameter could only contain ipv4 address
             // This could be improved to be able to store hostnames and ipv6 addresses
-            parseHost(args[++i]);
+            Args::targetHost = parseHost(args[++i], targetHostDefault);
+        } else if (args[i] == "-h" || args[i] == "--host") {
+            Args::proxyHost = parseHost(args[++i], proxyHostDefault);
+        }else if (args[i] == "-tp" || args[i] == "--target-port") {
+            Args::targetPort = parsePort(args[++i], targetPortDefault);
         } else if (args[i] == "-p" || args[i] == "--port") {
-            parsePort(args[++i]);
+            Args::proxyPort = parsePort(args[++i], proxyPortDefault);
         } else if (args[i] == "-d" || args[i] == "--logdir") {
-            parseDir(args[++i]);
+            Args::logdir = parseDir(args[++i], logdirDefault);
         } else if (args[i] == "-l" || args[i] == "--loglvl") {
-            parseLogLevel(args[++i]);
+            Args::loglvl = parseLogLevel(args[++i], loglvlDefault);
         }
     }
 
@@ -56,16 +66,18 @@ bool isValidIPv4(const std::string &ipv4) {
     return result != 0;
 }
 
-void parseHost(const std::string &arg) {
+std::string parseHost(const std::string &arg, const std::string &def) {
     if (isValidIPv4(arg)) {
-        Args::host = arg;
+        return arg;
     } else {
         Log.error() << arg << ": invalid host(ipv4)" << Log.endl;
-        Log.error() << "Default value will be used: " << hostDefault << Log.endl;
+        Log.error() << "Default value will be used: " << def << Log.endl;
+        
+        return def;
     }
 }
 
-void parsePort(const std::string &arg) {
+int parsePort(const std::string &arg, int def) {
 
     int parsedNum;
     
@@ -73,33 +85,39 @@ void parsePort(const std::string &arg) {
         parsedNum = stoi(arg);
     } catch (std::exception &e) {
         Log.error() << arg << ": invalid port number" << Log.endl;
-        Log.error() << "Default value will be used: " << portDefault << Log.endl;
+        Log.error() << "Default value will be used: " << def << Log.endl;
+
+        return def;
     }
 
     if (parsedNum > 1024 && parsedNum < 65535) {
-        Args::port = parsedNum;
+        return parsedNum;
     } else {
         Log.error() << parsedNum << ": invalid port number" << Log.endl;
-        Log.error() << "Default value will be used: " << portDefault << Log.endl;
+        Log.error() << "Default value will be used: " << def << Log.endl;
+
+        return def;
     }
 
+    
 }
 
-void parseDir(const std::string &arg) {
+std::string parseDir(const std::string &arg, const std::string &def) {
     namespace fs = std::filesystem;
 
     fs::path path = arg;
 
-    
     if (fs::is_directory(path)) {
-        Args::logdir = arg;
+        return arg;
     } else {
         Log.error() << arg << " does not exist or not a directory" << Log.endl;
-        Log.error() << "Default value will be used: " << logdirDefault << Log.endl;
+        Log.error() << "Default value will be used: " << def << Log.endl;
+
+        return def;
     }
 }
 
-void parseLogLevel(const std::string &arg) {
+int parseLogLevel(const std::string &arg, int def) {
     
     int parsedLvl;
 
@@ -107,14 +125,20 @@ void parseLogLevel(const std::string &arg) {
         parsedLvl = stoi(arg);
     } catch (std::exception &e) {
         Log.error() << arg << ": invalid level number" << Log.endl;
-        Log.error() << "Default value will be used: " << loglvlDefault << Log.endl;
+        Log.error() << "Default value will be used: " << def << Log.endl;
+        
+        return def;
     }
 
     if (parsedLvl >= 0 && parsedLvl < 4) {
-        Args::loglvl = parsedLvl;
+        return parsedLvl;
     } else {
         Log.error() << parsedLvl << ": invalid level number" << Log.endl;
-        Log.error() << "Default value will be used: " << loglvlDefault << Log.endl;
+        Log.error() << "Default value will be used: " << def << Log.endl;
+
+        return def;
     }
+
+
 }
 
