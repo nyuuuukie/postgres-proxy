@@ -5,7 +5,7 @@
 const int proxyPortDefault = 8080;
 const int loglvlDefault = 2;
 const std::string proxyHostDefault = "127.0.0.1";
-const std::string logdirDefault = "log";
+const std::string logdirDefault = "logs";
 
 const int targetPortDefault = 5432;
 const std::string targetHostDefault = "127.0.0.1";
