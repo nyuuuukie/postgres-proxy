@@ -112,10 +112,12 @@ Logger::operator<<(std::ostream& (*func)(std::ostream &)) {
             func(_out);
         }
 
-        if (_askLevel <= Levels::LOG_ERROR) {
-            func(std::cerr);
-        } else {
-            func(std::cout);
+        if (_stdoutLogs) {
+            if (_askLevel <= Levels::LOG_ERROR) {
+                func(std::cerr);
+            } else {
+                func(std::cout);
+            }
         }
 
         _askLevel = Levels::LOG_NOSPEC;
