@@ -1,28 +1,55 @@
 #include "Worker.hpp"
 #include "Server.hpp"
 
+
+Event pullEvent(void) {
+    Event event;
+
+    Globals::eventQueue.lock();
+    if (!Globals::eventQueue.empty()) {
+        event = Globals::eventQueue.pop_front();
+        
+        if (event.type != Event::Type::NONE) {
+            if (event.client) {
+                // Only one thread will be working with a client
+                if (event.client->processing) {
+                    Log.debug() << "Client is already processing" << Log.endl;
+                    event = {};
+                } else if (event.client->connected) {
+                    event.client->processing = true;
+                } else {
+                    Log.debug() << "Client not exist or disconnected" << Log.endl;
+                    event = {};
+                }
+            }
+        }
+    }
+    Globals::eventQueue.unlock();
+
+    return event;
+}
+
+void handleEvent(Event event) {
+        if (event.type == Event::Type::READ_REQUEST) {
+        event.client->readRequest();
+    } else if (event.type == Event::Type::PASS_REQUEST) {
+        event.client->passRequest();
+    } else if (event.type == Event::Type::READ_RESPONSE) {
+        event.client->readResponse();
+    } else if (event.type == Event::Type::PASS_RESPONSE) {
+        event.client->passResponse();
+    } else {
+        Log.error() << "Unknown event " << Log.endl;
+    }
+}
+
 void   workerCycle(void) {
 
     Log.debug() << "Worker " << std::this_thread::get_id() << ": cycle started" << Log.endl;
 
     while (Globals::server.isWorking()) {
     
-        Event event;
-    
-        Globals::eventQueue.lock();
-        if (!Globals::eventQueue.empty()) {
-            event = Globals::eventQueue.pop_front();
-            
-            if (event.type != Event::Type::NONE) {
-                if (event.client && event.client->connected) {
-                    event.client->processing = true;
-                } else {
-                    event = {};
-                }
-            }
-        }
-        Globals::eventQueue.unlock();
-
+        Event event = pullEvent();
 
         if (!event.isOperative()) {
             // use worker_timeout variable
@@ -30,19 +57,9 @@ void   workerCycle(void) {
             continue;
         }
 
-        // handle event
-        // event.client->handleEvent(event);
-               if (event.type == Event::Type::READ_REQUEST) {
-            event.client->readRequest();
-        } else if (event.type == Event::Type::PASS_REQUEST) {
-            event.client->passRequest();
-        } else if (event.type == Event::Type::READ_RESPONSE) {
-            event.client->readResponse();
-        } else if (event.type == Event::Type::PASS_RESPONSE) {
-            event.client->passResponse();
-        } else {
-            Log.error() << "Unknown event " << Log.endl;
-        }
+        handleEvent(event);
+
+        event.client->processing = false;
     }
 
     Log.debug() << "Worker " << std::this_thread::get_id() << ": cycle stopped" << Log.endl;
