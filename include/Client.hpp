@@ -2,6 +2,9 @@
 
 #include "Socket.hpp"
 #include "Log.hpp"
+#include "EventQueue.hpp"
+#include "MessageList.hpp"
+#include "Globals.hpp"
 
 class Client {
     // Front socket is the one that communicates with
@@ -13,21 +16,33 @@ class Client {
     // time for timeout, updated every send or recv
     time_point _lastTime;
 
-
-    
+    MessageList _requests;
+    MessageList _responses;
 
 public:
+    std::atomic<bool> connected;
+    std::atomic<bool> processing;
+
     Client(void);
     ~Client(void);
-
-    int connect(const std::string &host, int port);
 
     Socket &getFrontSocket(void);
     Socket &getBackSocket(void);
 
+    int connect(const std::string &host, int port);
+
     time_point getLastTime(void) const;
 
-    std::atomic<bool> connected;
+    void readRequest(void);
+    void passRequest(void);
+    void readResponse(void);
+    void passResponse(void);
 
-    // add processing prop
+    void addReadEvent(int fd);
+    void addPassEvent(int fd);
+
+private:
+    void read(MessageList &list, Socket &socket);
+    void pass(MessageList &list, Socket &socket);
+
 };

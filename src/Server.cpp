@@ -62,6 +62,10 @@ void Server::start(void) {
             process();
         }
     
+        // Important, too many polling without sleeping
+        // because worker threads used to sleep during idle
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        
         // checkClientTimeouts();
     
         deleteClients();
@@ -73,7 +77,7 @@ void Server::start(void) {
 void Server::startWorkers(void) {
 
     for (int i = 0; i < Args::workersCount; ++i) {
-        // add args if needed
+        // Add args in case of needs
         _workers.push_back(std::thread(workerCycle));
     }
 
@@ -191,9 +195,7 @@ void Server::addClient(void) {
         delete client;
         return ;
     }
-    
-    // Probably not happen, but
-    // check if map already contains these fds
+
     _clients[clientFrontSocketFd] = client;
     _clients[clientBackSocketFd] = client;
 
@@ -209,50 +211,24 @@ void Server::addClient(void) {
 void
 Server::pollin(int fd) {
 
-    using Type = Event::Type;
-
     Client *client = _clients[fd];
     if (client == nullptr) {
         return ;
     }
 
-    if (fd == client->getFrontSocket().getFd()) {
-        // read request from the client
-        // check memory allocation
-        Log.debug() << "Server::pollin [" << fd << "]: rreq added to queue" << Log.endl;
-        // Globals::eventQueue.push(new Event({ client, Type::READ_REQUEST }));
-        Globals::eventQueue.push({ client, Type::READ_REQUEST });
-
-
-    } else if (fd == client->getBackSocket().getFd()) {
-        // read response from the server
-        // check memory allocation
-        Log.debug() << "Server::pollin [" << fd << "]: rres added to queue" << Log.endl;
-        // Globals::eventQueue.push( new Event({ client, Type::READ_RESPONSE }) );
-        Globals::eventQueue.push({ client, Type::READ_RESPONSE });
-    }
+    client->addReadEvent(fd);
 }
 
 void
 Server::pollout(int fd) {
-    
-    // using Type = Event::Type;
 
     Client *client = _clients[fd];
     if (client == nullptr) {
         return ;
     }
 
-    if (fd == client->getFrontSocket().getFd()) {
-        // send response to the client if have any
-        // check memory allocation
-        // Globals::eventQueue.push( new Event({ client, Type::PASS_RESPONSE }) );
-
-    } else if (fd == client->getBackSocket().getFd()) {
-        // send request to the server if have any
-        // check memory allocation
-        // Globals::eventQueue.push( new Event({ client, Type::PASS_REQUEST }) );
-    }
+    // Log.debug() << "Server::pollout [" << fd << "]" << Log.endl;
+    client->addPassEvent(fd);
 }
 
 void
@@ -267,7 +243,6 @@ Server::pollhup(int fd) {
     }
 
     client->connected = false;
-    // addToDelClientsSet(client);
 }
 
 void
@@ -280,7 +255,6 @@ Server::pollerr(int fd) {
         return ;
     }
 
-    // addToDelClientsSet(client);
     client->connected = false;
 }
 
@@ -298,12 +272,6 @@ void Server::deleteClient(Client *client) {
             p.fd = -1;
         }
     }
-    // for (int i = 0; i < _pollfds.size(); ++i) {
-    //     if (_pollfds[i].fd == frontFd || _pollfds[i].fd == backFd) {
-    //         _pollfds[i].fd = -1;
-    //     }
-    // }
-
 }
 
 void Server::checkClientTimeouts(void) {
@@ -315,35 +283,18 @@ void Server::checkClientTimeouts(void) {
     const auto currentTime = std::chrono::system_clock::now();
     for (const auto& [fd, client] : _clients) {
         if (currentTime - client->getLastTime() > maxTimeout) {
-            // addToDelClientsSet(client);
             Log.debug() << "Client is disconnecting..." << Log.endl;
             client->connected = false;
         }
     }
 }
 
-
-
-
-// Not sure what will be if worker tries to delete a client after main thread already deleted it.
-// void Server::addToDelClientsSet(Client *client) {
-
-//     _m_delClientsLock.lock();
-
-//     _delClientsSet.insert(client);
-
-//     _m_delClientsLock.unlock();
-// }
-
 // Maybe should be moved to separate class/file
-// And maybe set should be used to avoid double free
 void Server::deleteClients(void) {
-
-    // _m_delClientsLock.lock();
 
     std::unordered_set<Client *> deleteClients;
     for (auto& [fd, client] : _clients) {
-        if (client && !client->connected) { // and not processing
+        if (client && !client->connected && !client->processing) {
             deleteClients.insert(client);
         }
     }
@@ -358,7 +309,4 @@ void Server::deleteClients(void) {
         delete client;
     }
 
-    // _delClientsSet.clear();
-
-    // _m_delClientsLock.unlock();
 }
