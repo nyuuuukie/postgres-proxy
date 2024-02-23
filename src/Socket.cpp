@@ -5,7 +5,6 @@ static const std::size_t BUFFER_SIZE = 65536;
 
 Socket::Socket(void) 
     : _fd(-1)
-    // , _port(0)
     , _dataSize(0)
     , _dataPos(0) {}
 
@@ -27,13 +26,20 @@ Socket::setFd(int fd) {
 
 
 const std::string &
-Socket::getRem(void) const {
-    return _rem;
+Socket::getRemainder(void) const {
+    return _remainder;
 }
 
 void
-Socket::setRem(const std::string &rem) {
-    _rem = rem;
+Socket::setRemainder(const std::string &rem) {
+    _remainder = rem;
+}
+
+void
+Socket::removeRemainderBytes(int bytes) {
+    if (bytes > 0) {
+        _remainder.erase(0, bytes);
+    }
 }
 
 void
@@ -77,10 +83,8 @@ Socket::clear(void) {
 void
 Socket::reset(void) {
     setFd(-1);
-    // setAddr("");
-    // setPort(0);
     clear();
-    _rem = "";
+    _remainder = "";
 }
 
 
@@ -133,9 +137,6 @@ Socket::listen(const std::string &addr, int port) {
     data.sin_port   = htons(port);
     data.sin_addr.s_addr = inet_addr(addr.c_str());
 
-    // setAddr(addr);
-    // setPort(port);
-
     if (::setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &i, sizeof(int)) < 0) {
         Log.crit() << "Socket::setsockopt failed on [" << _fd << "], " << addr << ":" << port << Log.endl;
         return -1;
@@ -164,8 +165,7 @@ int Socket::read(void) {
     if (bytes > 0) {
         buf[bytes] = '\0';
         
-        _rem.append(buf, bytes);
-        return bytes;
+        _remainder.append(buf, bytes);
     }
 
     return bytes;
