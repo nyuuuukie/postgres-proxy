@@ -16,6 +16,7 @@ int main(int ac, char **av) {
     queryLog.setLogDir(Args::logdir);
     queryLog.setPrefix("query-");
     queryLog.fileLogs(true);
+    queryLog.stdoutLogs(false);
 
     Globals::server.start();
 
