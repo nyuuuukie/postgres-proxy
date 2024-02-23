@@ -1,11 +1,11 @@
 #pragma once 
 
 #include <list>
-#include <iostream>
+#include <mutex>
 #include "Event.hpp"
 
 class EventQueue {
-    std::recursive_mutex _m_operationLock;
+    mutable std::recursive_mutex _m_operationLock;
 
     std::list<Event> _queue;
 
@@ -25,6 +25,7 @@ public:
     }
 
     bool empty(void) const {
+        std::lock_guard<std::recursive_mutex> lk(_m_operationLock);
         return _queue.empty();
     }
 
