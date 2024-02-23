@@ -17,6 +17,7 @@ CPPFLAGS  =   -Wall -Wextra -Werror -std=c++17 -g
 SRCS_DIR     = src
 OBJS_DIR     = .obj
 DEPS_DIR     = .deps
+LOGS_DIR	 = logs
 INCLUDE_DIR  = include
 
 SRCS     =  $(shell ls ${SRCS_DIR})
@@ -33,6 +34,7 @@ all: makedir $(NAME)
 makedir:
 	@if ! [ -d ${OBJS_DIR} ] ; then mkdir ${OBJS_DIR} ; fi
 	@if ! [ -d ${DEPS_DIR} ] ; then mkdir ${DEPS_DIR} ; fi
+	@if ! [ -d ${LOGS_DIR} ] ; then mkdir ${LOGS_DIR} ; fi
 
 
 $(NAME): $(OBJS)
