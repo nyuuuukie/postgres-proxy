@@ -19,8 +19,7 @@ int Server::initListenSocket(void) {
     return 0;
 }
 
-Server::Server(void) : _working(true) {
-}
+Server::Server(void) : _working(true) {}
 
 Server::~Server(void) {}
 
@@ -39,14 +38,15 @@ void sigintHandler(int) {
     Globals::server.stop();
 }
 
-
-// Describes the server's main cycle
-void Server::start(void) {
-
+void Server::startupInfo(void) {
     Log.info() << "Server is starting on " << Args::proxyHost << ":" << Args::proxyPort << Log.endl;
     Log.info() << "Proxying to " << Args::targetHost << ":" << Args::targetPort << Log.endl;
     Log.info() << "Log level: " << Args::loglvl << Log.endl;
     Log.info() << "Log directory: " << Args::logdir << Log.endl;
+}
+
+// Describes the server's main cycle
+void Server::start(void) {
 
     signal(SIGINT, sigintHandler);
     
@@ -54,6 +54,8 @@ void Server::start(void) {
         stop();
         return;
     }
+
+    startupInfo();
 
     startWorkers();
 
@@ -67,9 +69,9 @@ void Server::start(void) {
     }
 
     stopWorkers();
+
     disconnectClients();
     deleteClients();
-
 }
 
 

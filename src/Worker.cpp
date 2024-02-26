@@ -26,7 +26,7 @@ Event pullEvent(void) {
 }
 
 void handleEvent(Event event) {
-        if (event.type == Event::Type::READ_REQUEST) {
+           if (event.type == Event::Type::READ_REQUEST) {
         event.client->readRequest();
     } else if (event.type == Event::Type::PARSE_REQUEST) {
         event.client->parseRequest();
@@ -50,7 +50,6 @@ void   workerCycle(void) {
     Log.debug() << "Worker " << std::this_thread::get_id() << ": cycle started" << Log.endl;
 
     while (Globals::server.isWorking()) {
-    
         Event event = pullEvent();
      
         if (!event.isOperative()) {
@@ -61,5 +60,4 @@ void   workerCycle(void) {
     }
 
     Log.debug() << "Worker " << std::this_thread::get_id() << ": cycle stopped" << Log.endl;
-
 }

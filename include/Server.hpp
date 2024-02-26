@@ -51,5 +51,5 @@ private:
     void startWorkers(void);
     void stopWorkers(void);
 
-    void checkClientTimeouts(void);
+    void startupInfo(void);
 };
