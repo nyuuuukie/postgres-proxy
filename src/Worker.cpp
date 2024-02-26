@@ -1,6 +1,4 @@
 #include "Worker.hpp"
-#include "Server.hpp"
-
 
 Event pullEvent(void) {
     Event event;
@@ -56,8 +54,6 @@ void   workerCycle(void) {
         Event event = pullEvent();
      
         if (!event.isOperative()) {
-            // use worker_timeout variable
-            // std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue ;
         }
      
