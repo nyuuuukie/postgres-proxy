@@ -47,6 +47,7 @@ public:
     void fileLogs(bool);
     void stdoutLogs(bool);
 
+    void setLevel(int level);
     void setLevel(Levels level);
     void setLogDir(const std::string &);
     void setFilePrefix(const std::string &);

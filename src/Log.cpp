@@ -58,9 +58,15 @@ Logger::fileLogs(bool flag) {
 }
 
 void
+Logger::setLevel(int level) {
+    _curLevel = static_cast<Levels>(level);
+}
+
+void
 Logger::setLevel(Levels level) {
     _curLevel = level;
 }
+
 
 void
 Logger::setFilePrefix(const std::string &prefix) {
