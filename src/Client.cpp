@@ -55,10 +55,15 @@ void Client::parse(MessageList& list, Socket& socket) {
         msg->addData(data);
     }
 
-    if (msg->parse()) {
-        // Print query SQL requests
-        if (msg->getId() == 'Q') {
-            queryLog.print() << &msg->getData()[5] << queryLog.endl;
+    const bool finished = msg->parse();
+    if (finished) {
+        if (Args::logAllMessages) {
+            queryLog.print() << *msg << queryLog.endl;
+        } else {
+            // Print query SQL requests
+            if (msg->getId() == 'Q') {
+                queryLog.print() << &msg->getData()[5] << queryLog.endl;
+            }
         }
     }
 
@@ -86,7 +91,6 @@ void Client::pass(MessageList& list, Socket& socket) {
     list.unlock();
 
     if (msg != nullptr) {
-        queryLog.print() << *msg << queryLog.endl;
         socket.setData(msg->getData());
 
         socket.write();

@@ -118,7 +118,7 @@ std::ostream& operator<<(std::ostream& out, const Message& msg) {
 
     const std::string& data = msg.getData();
     for (std::size_t i = offset; i < data.size(); ++i) {
-        if (isprint(data[i]) && (i == offset || isprint(data[i - 1]) || data[i - 1] == 0)) {
+        if (isprint(data[i])) { //&& (i == offset || isprint(data[i - 1]) || !isprint(data[i - 1]))) {
             out << data[i];
         } else {
             out << "[" << (int)(unsigned char)data[i] << "]";

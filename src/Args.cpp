@@ -15,6 +15,7 @@ std::string Args::targetHost = targetHostDefault;
 std::string Args::logdir = logdirDefault;
 std::string Args::proxyHost = proxyHostDefault;
 int Args::proxyPort = proxyPortDefault;
+bool Args::logAllMessages = false;
 
 // Not implemented flags yet
 int Args::backlog = SOMAXCONN;
@@ -32,13 +33,14 @@ void Args::usage(void) {
     Log.info() << "-tp, --target-port\tTarget port (ipv4 addr)" << Log.endl;
     Log.info() << "-h,  --host\t\tProxy host (current machine)" << Log.endl;
     Log.info() << "-p,  --port\t\tProxy port (current machine)" << Log.endl;
-    Log.info() << "-d,  --logdir\t\tLogs directory" << Log.endl;
-    Log.info() << "-l,  --loglvl\t\tLogs level" << Log.endl;
+    Log.info() << "-d,  --log-dir\t\tLogs directory" << Log.endl;
+    Log.info() << "-l,  --log-lvl\t\tLogs level" << Log.endl;
     Log.info() << "\t0 - critical errors only" << Log.endl;
     Log.info() << "\t1 - errors only" << Log.endl;
     Log.info() << "\t2 - errors and information logs" << Log.endl;
     Log.info() << "\t3 - errors, info and debug messages" << Log.endl;
     Log.info() << "-w,  --workers\tWorkers(threads) count" << Log.endl;
+    Log.info() << "-a   --log-all-msg\tLog all messages" << Log.endl;
 }
 
 int Args::parse(char** av) {
@@ -67,14 +69,17 @@ int Args::parse(char** av) {
         } else if (args[i] == "-p" || args[i] == "--port") {
             Args::proxyPort = parseNum(args[++i], "proxy port", proxyPortDefault, 1024, 65535);
 
-        } else if (args[i] == "-d" || args[i] == "--logdir") {
+        } else if (args[i] == "-d" || args[i] == "--log-dir") {
             Args::logdir = parseDir(args[++i], logdirDefault);
 
-        } else if (args[i] == "-l" || args[i] == "--loglvl") {
+        } else if (args[i] == "-l" || args[i] == "--log-lvl") {
             Args::loglvl = parseNum(args[++i], "log level", loglvlDefault, 0, 3);
 
         } else if (args[i] == "-w" || args[i] == "--workers") {
             Args::workersCount = parseNum(args[++i], "workers", workersCountDefault, 1, 20);
+
+        } else if (args[i] == "-a" || args[i] == "--log-all-msg") {
+            Args::logAllMessages = true;
 
         } else {
             Log.error() << "Unknown parameter: " << args[i] << Log.endl;

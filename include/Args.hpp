@@ -22,6 +22,8 @@ namespace Args {
     extern int backlog;
     extern int workersCount;
 
+    extern bool logAllMessages;
+
     int parse(char** av);
     void usage(void);
 };  // namespace Args
