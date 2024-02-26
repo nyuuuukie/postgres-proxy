@@ -39,7 +39,7 @@ public:
     void addPassEvent(int fd);
 
 private:
-    void read(Socket& socket);
+    void read(MessageList& list, Socket& socket);
     void parse(MessageList& list, Socket& socket);
     void pass(MessageList& list, Socket& socket);
 };

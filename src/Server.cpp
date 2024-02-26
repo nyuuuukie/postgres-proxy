@@ -116,7 +116,7 @@ void Server::process(void) {
                     pollout(fd);
                 }
 
-                checkParseEvent(fd);
+                // checkParseEvent(fd);
             }
         }
 

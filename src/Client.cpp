@@ -30,6 +30,7 @@ int Client::connect(const std::string& host, int port) {
 }
 
 void Client::parse(MessageList& list, Socket& socket) {
+
     const std::string& data = socket.getRemainder();
     if (data.size() == 0) {
         return;
@@ -67,17 +68,23 @@ void Client::parse(MessageList& list, Socket& socket) {
         }
     }
 
-    list.push(msg);
+    if (msg != nullptr) {
+        list.push(msg);
+    }
 
     // Delete bytes that were parsed
     socket.removeRemainderBytes(msg->size());
 }
 
-void Client::read(Socket& socket) {
+void Client::read(MessageList& list, Socket& socket) {
     if (socket.read() == 0) {
         Log.debug() << "Client::end of read, disconnect" << Log.endl;
         connected = false;
         return;
+    }
+
+    while (!socket.getRemainder().empty()) {
+        parse(list, socket);
     }
 }
 
@@ -85,17 +92,19 @@ void Client::pass(MessageList& list, Socket& socket) {
     Message* msg = nullptr;
 
     list.lock();
-    if (list.size() > 0 && list.back()->ready()) {
+    if (list.size() > 0 && list.front()->ready()) {
         msg = list.pop_front();
     }
+    Log.debug() << "Client::pass exec " << list.size() << Log.endl;
     list.unlock();
 
     if (msg != nullptr) {
         socket.setData(msg->getData());
-
         socket.write();
 
         delete msg;
+    } else {
+        Log.debug() << "Client::pass null msg " << list.size() << Log.endl;
     }
 }
 
@@ -151,7 +160,7 @@ void Client::addPassEvent(int fd) {
 }
 
 void Client::readRequest(void) {
-    read(_frontSock);
+    read(_requests, _frontSock);
 }
 
 void Client::passRequest(void) {
@@ -159,7 +168,7 @@ void Client::passRequest(void) {
 }
 
 void Client::readResponse(void) {
-    read(_backSock);
+    read(_responses, _backSock);
 }
 
 void Client::passResponse(void) {
@@ -167,9 +176,9 @@ void Client::passResponse(void) {
 }
 
 void Client::parseRequest(void) {
-    parse(_requests, _frontSock);
+    // parse(_requests, _frontSock);
 }
 
 void Client::parseResponse(void) {
-    parse(_responses, _backSock);
+    // parse(_responses, _backSock);
 }

@@ -13,6 +13,7 @@ int main(int ac, char** av) {
     Log.setLogDir(Args::logdir);
     Log.setLevel(Args::loglvl);
     Log.fileLogs(true);
+    // Log.stdoutLogs(false);
 
     // Query logger settings
     queryLog.setLogDir(Args::logdir);

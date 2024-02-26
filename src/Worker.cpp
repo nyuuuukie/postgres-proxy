@@ -12,11 +12,11 @@ Event pullEvent(void) {
             if (event.client->processing) {
                 Log.debug() << "Client already processing" << Log.endl;
                 event = {};
-            } else if (event.client->connected) {
-                event.client->processing = true;
-            } else {
+            } else if (!event.client->connected) {
                 Log.debug() << "Client not exist or disconnected" << Log.endl;
                 event = {};
+            } else {
+                event.client->processing = true;
             }
         }
     }
