@@ -7,7 +7,7 @@
 class MessageList {
     mutable std::recursive_mutex _m_operationLock;
 
-    std::list<Message *> _l;
+    std::list<Message*> _l;
 
 public:
     void lock(void) {
@@ -18,18 +18,18 @@ public:
         _m_operationLock.unlock();
     }
 
-    void push(Message *msg) {
+    void push(Message* msg) {
         lock();
         _l.push_back(msg);
         unlock();
     }
 
-    Message *back(void) const {
+    Message* back(void) const {
         std::lock_guard<std::recursive_mutex> lk(_m_operationLock);
         return _l.back();
     }
 
-    Message *front(void) const {
+    Message* front(void) const {
         std::lock_guard<std::recursive_mutex> lk(_m_operationLock);
         return _l.front();
     }
@@ -44,10 +44,10 @@ public:
         return _l.size();
     }
 
-    Message *pop_front(void) {
+    Message* pop_front(void) {
         lock();
 
-        Message *msg = nullptr;
+        Message* msg = nullptr;
         if (!empty()) {
             msg = _l.front();
             _l.pop_front();
@@ -58,10 +58,10 @@ public:
         return msg;
     }
 
-    Message *pop(void) {
+    Message* pop(void) {
         lock();
 
-        Message *msg = nullptr;
+        Message* msg = nullptr;
         if (!empty()) {
             msg = _l.back();
             _l.pop_back();

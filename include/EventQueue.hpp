@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 #include <list>
 #include <mutex>
@@ -43,7 +43,7 @@ public:
         return e;
     }
 
-    template<class UnaryPredicate>
+    template <class UnaryPredicate>
     void remove_if(UnaryPredicate p) {
         lock();
 

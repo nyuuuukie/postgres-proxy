@@ -2,7 +2,7 @@
 #include "Args.hpp"
 #include "Globals.hpp"
 
-int main(int ac, char **av) {
+int main(int ac, char** av) {
     (void)ac;
 
     if (Args::parse(av) < 0) {

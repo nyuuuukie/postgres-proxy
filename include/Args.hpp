@@ -1,9 +1,9 @@
 #pragma once
 
-#include <iostream>
-#include <vector>
 #include <arpa/inet.h>
 #include <filesystem>
+#include <iostream>
+#include <vector>
 
 #include "Log.hpp"
 
@@ -22,6 +22,6 @@ namespace Args {
     extern int backlog;
     extern int workersCount;
 
-    int parse(char **av);
+    int parse(char** av);
     void usage(void);
-};
+};  // namespace Args

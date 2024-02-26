@@ -6,7 +6,7 @@ Event pullEvent(void) {
     Globals::eventQueue.lock();
     if (!Globals::eventQueue.empty()) {
         event = Globals::eventQueue.pop_front();
-        
+
         if (event.type != Event::Type::NONE && event.client) {
             // Only one thread will be working with a client
             if (event.client->processing) {
@@ -17,7 +17,7 @@ Event pullEvent(void) {
             } else {
                 Log.debug() << "Client not exist or disconnected" << Log.endl;
                 event = {};
-            }   
+            }
         }
     }
     Globals::eventQueue.unlock();
@@ -26,7 +26,7 @@ Event pullEvent(void) {
 }
 
 void handleEvent(Event event) {
-           if (event.type == Event::Type::READ_REQUEST) {
+    if (event.type == Event::Type::READ_REQUEST) {
         event.client->readRequest();
     } else if (event.type == Event::Type::PARSE_REQUEST) {
         event.client->parseRequest();
@@ -45,17 +45,16 @@ void handleEvent(Event event) {
     event.client->processing = false;
 }
 
-void   workerCycle(void) {
-
+void workerCycle(void) {
     Log.debug() << "Worker " << std::this_thread::get_id() << ": cycle started" << Log.endl;
 
     while (Globals::server.isWorking()) {
         Event event = pullEvent();
-     
+
         if (!event.isOperative()) {
-            continue ;
+            continue;
         }
-     
+
         handleEvent(event);
     }
 

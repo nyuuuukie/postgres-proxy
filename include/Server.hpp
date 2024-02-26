@@ -1,24 +1,24 @@
 #pragma once
 
 #include <arpa/inet.h>
-#include <poll.h>
 #include <netdb.h>
+#include <poll.h>
 
-#include <vector>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
-#include <thread>
+#include <vector>
 
 #include "Args.hpp"
 #include "Client.hpp"
 #include "Worker.hpp"
+#include "Socket.hpp"
 
 class Server {
+    std::vector<struct pollfd> _pollfds;
+    std::unordered_map<int, Client*> _clients;
+    std::vector<std::thread> _workers;
 
-    std::vector<struct pollfd>          _pollfds;
-    std::unordered_map<int, Client *>   _clients;
-    std::vector<std::thread>            _workers;
-    
     std::atomic<bool> _working;
     Socket _listSock;
 
@@ -30,7 +30,7 @@ public:
     void stop(void);
     bool isWorking(void) const;
 
-private: 
+private:
     int initListenSocket(void);
     void process(void);
 
@@ -44,10 +44,10 @@ private:
     int acceptClient(void);
     void addClient(void);
     void addPollfdData(struct pollfd pfd);
-    void deleteClient(Client *client);
+    void deleteClient(Client* client);
     void deleteClients(void);
     void disconnectClients(void);
-    
+
     void startWorkers(void);
     void stopWorkers(void);
 

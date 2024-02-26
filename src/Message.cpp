@@ -1,9 +1,11 @@
 #include "Message.hpp"
 #include "Log.hpp"
 
-Message::Message(const std::string &s) : _data(s), _id(0), _len(0), _offset(0), _parseStage(0) {}
+Message::Message(const std::string& s) : _data(s), _id(0), _len(0), _offset(0), _parseStage(0) {
+}
 
-Message::Message(const char *s) : _data(s), _id(0), _len(0), _offset(0), _parseStage(0) {}
+Message::Message(const char* s) : _data(s), _id(0), _len(0), _offset(0), _parseStage(0) {
+}
 
 int Message::size(void) const {
     return _offset;
@@ -13,11 +15,11 @@ bool Message::ready(void) const {
     return _parseStage == 3;
 }
 
-void Message::addData(const std::string &data) {
+void Message::addData(const std::string& data) {
     _data += data;
 }
 
-const std::string &Message::getData(void) const {
+const std::string& Message::getData(void) const {
     return _data;
 }
 
@@ -30,8 +32,7 @@ int Message::getLen(void) const {
 }
 
 void Message::parseId(void) {
-    if (frontIds.find(_data[0]) != std::string::npos || \
-        backIds.find(_data[0]) != std::string::npos) {
+    if (frontIds.find(_data[0]) != std::string::npos || backIds.find(_data[0]) != std::string::npos) {
         _id = _data[0];
         _offset++;
     }
@@ -61,11 +62,10 @@ void Message::parseData(void) {
 
 // Returns true if parsing succeeded, false otherwise
 bool Message::parse(void) {
-
     if (_data.size() == 0) {
         return false;
     }
-    
+
     if (_parseStage == 0) {
         parseId();
     }
@@ -90,7 +90,7 @@ bool Message::parse(void) {
     if (_data.size() < static_cast<std::size_t>(_offset + _len)) {
         return false;
     }
-    
+
     if (_parseStage == 2) {
         parseData();
     }
@@ -98,8 +98,7 @@ bool Message::parse(void) {
     return true;
 }
 
-std::ostream& operator<<(std::ostream &out, const Message &msg) {
-
+std::ostream& operator<<(std::ostream& out, const Message& msg) {
     std::size_t offset = 0;
 
     if (msg.getId() != 0) {
@@ -117,7 +116,7 @@ std::ostream& operator<<(std::ostream &out, const Message &msg) {
     }
     out << " ";
 
-    const std::string &data = msg.getData();
+    const std::string& data = msg.getData();
     for (std::size_t i = offset; i < data.size(); ++i) {
         if (isprint(data[i]) && (i == offset || isprint(data[i - 1]) || data[i - 1] == 0)) {
             out << data[i];

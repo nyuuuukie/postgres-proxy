@@ -1,14 +1,12 @@
 #pragma once
 
-#include "Socket.hpp"
-#include "Log.hpp"
-#include "EventQueue.hpp"
-#include "MessageList.hpp"
 #include "Globals.hpp"
+#include "MessageList.hpp"
+#include "Socket.hpp"
 
 class Client {
     // Front socket is the one that communicates with
-    // the client and the back one is the one that 
+    // the client and the back one is the one that
     // communicates with the backend server
     Socket _frontSock;
     Socket _backSock;
@@ -23,10 +21,10 @@ public:
     Client(void);
     ~Client(void);
 
-    Socket &getFrontSocket(void);
-    Socket &getBackSocket(void);
+    Socket& getFrontSocket(void);
+    Socket& getBackSocket(void);
 
-    int connect(const std::string &host, int port);
+    int connect(const std::string& host, int port);
 
     void readRequest(void);
     void readResponse(void);
@@ -40,8 +38,7 @@ public:
     void addPassEvent(int fd);
 
 private:
-    void read(Socket &socket);
-    void parse(MessageList &list, Socket &socket);
-    void pass(MessageList &list, Socket &socket);
-
+    void read(Socket& socket);
+    void parse(MessageList& list, Socket& socket);
+    void pass(MessageList& list, Socket& socket);
 };
