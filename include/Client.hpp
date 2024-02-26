@@ -1,9 +1,10 @@
 #pragma once
 
+#include <atomic>
+
 #include "Globals.hpp"
 #include "MessageList.hpp"
 #include "Socket.hpp"
-
 class Client {
     // Front socket is the one that communicates with
     // the client and the back one is the one that
