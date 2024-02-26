@@ -22,7 +22,7 @@ private:
 
     std::string _logfile;
     std::string _logDir;
-    std::string _logPrefix;
+    std::string _logFilePrefix;
     
     Levels      _curLevel;
     Levels      _askLevel;
@@ -42,14 +42,14 @@ public:
     Logger& debug(void);
     Logger& error(void);
     Logger& crit(void);
-    Logger& print(Levels);
+    Logger& print(Levels = Levels::LOG_NOSPEC);
 
     void fileLogs(bool);
     void stdoutLogs(bool);
 
     void setLevel(Levels level);
     void setLogDir(const std::string &);
-    void setPrefix(const std::string &);
+    void setFilePrefix(const std::string &);
 
     Logger& operator<<(std::ostream& (*func)(std::ostream &));
     

@@ -4,20 +4,20 @@ Logger Log;
 Logger queryLog;
 
 static const std::vector<std::string> titles {
-    "CRIT", "ERROR", "INFO", "DEBUG", ""
+    " CRIT", "ERROR", " INFO", "DEBUG", ""
 };
 
-Logger::Logger() : std::ostream(this),
+Logger::Logger(void) : std::ostream(this),
     _fileLogs(false),
     _stdoutLogs(true),
     _logfile(""),
     _logDir(""),
-    _logPrefix(""),
+    _logFilePrefix(""),
     _curLevel(Levels::LOG_NOSPEC),
     _askLevel(Levels::LOG_NOSPEC) {
 }
 
-Logger::~Logger() {}
+Logger::~Logger(void) {}
 
 void
 Logger::setLogDir(const std::string &dir) {
@@ -42,7 +42,7 @@ Logger::fileLogs(bool flag) {
     _fileLogs = flag;
     if (_fileLogs) {
         // Constants could be moved to another file with other settings
-        _logfile = _logDir + _logPrefix + Time::nowFmtString("%d-%m-%Y_%H-%M-%S") + ".log";
+        _logfile = _logDir + _logFilePrefix + Time::nowFmtString("%d-%m-%Y_%H-%M-%S") + ".log";
 
         _out.open(_logfile, std::ios_base::out | std::ios_base::trunc);
 
@@ -63,8 +63,8 @@ Logger::setLevel(Levels level) {
 }
 
 void
-Logger::setPrefix(const std::string &prefix) {
-    _logPrefix = prefix;
+Logger::setFilePrefix(const std::string &prefix) {
+    _logFilePrefix = prefix;
 }
 
 
