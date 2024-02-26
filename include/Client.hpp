@@ -34,15 +34,19 @@ public:
     time_point getLastTime(void) const;
 
     void readRequest(void);
-    void passRequest(void);
     void readResponse(void);
+    void parseRequest(void);
+    void parseResponse(void);
+    void passRequest(void);
     void passResponse(void);
 
     void addReadEvent(int fd);
+    void addParseEvent(int fd);
     void addPassEvent(int fd);
 
 private:
-    void read(MessageList &list, Socket &socket);
+    void read(Socket &socket);
+    void parse(MessageList &list, Socket &socket);
     void pass(MessageList &list, Socket &socket);
 
 };

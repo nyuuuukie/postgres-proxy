@@ -61,11 +61,7 @@ void Server::start(void) {
         if (poll() > 0) {
             process();
         }
-    
-        // Important, too many polling without sleeping
-        // because worker threads used to sleep during idle
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        
+
         // checkClientTimeouts();
     
         deleteClients();
@@ -119,6 +115,8 @@ void Server::process(void) {
                 if (_pollfds[i].revents & POLLOUT) {
                     pollout(fd);
                 }
+
+                checkParseEvent(fd);
             }
         }
 
@@ -206,7 +204,16 @@ void Server::addClient(void) {
     Log.debug() << "Server::connect [" << clientFrontSocketFd << "] -> [" << clientBackSocketFd << "]" << Log.endl;
 }
 
+void
+Server::checkParseEvent(int fd) {
 
+    Client *client = _clients[fd];
+    if (client == nullptr) {
+        return ;
+    }
+
+    client->addParseEvent(fd);
+}
 
 void
 Server::pollin(int fd) {
@@ -227,7 +234,6 @@ Server::pollout(int fd) {
         return ;
     }
 
-    // Log.debug() << "Server::pollout [" << fd << "]" << Log.endl;
     client->addPassEvent(fd);
 }
 
@@ -235,7 +241,6 @@ void
 Server::pollhup(int fd) {
 
     Log.debug() << "Server::pollhup [" << fd << "]" << Log.endl;
-    Log.debug() << "Server::pollhup client has probably closed connection" << Log.endl;
 
     Client *client = _clients[fd];
     if (client == nullptr) {

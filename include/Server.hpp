@@ -41,6 +41,7 @@ private:
     void pollhup(int fd);
     void pollerr(int fd);
     void pollout(int fd);
+    void checkParseEvent(int fd);
 
     int acceptClient(void);
     void addClient(void);
@@ -52,5 +53,4 @@ private:
 
     void startWorkers(void);
     void stopWorkers(void);
-
 };

@@ -4,6 +4,17 @@ Client::Client(void) : _lastTime(Time::now()), connected(true), processing(false
 
 Client::~Client(void) {}
 
+Socket & Client::getFrontSocket(void) {
+    return _frontSock;
+}
+
+Socket & Client::getBackSocket(void) {
+    return _backSock;
+}
+
+time_point Client::getLastTime(void) const {
+    return _lastTime;
+}
 
 // Connects new client to the back server
 int Client::connect(const std::string &host, int port) {
@@ -21,69 +32,53 @@ int Client::connect(const std::string &host, int port) {
     return 0;
 }
 
-Socket & Client::getFrontSocket(void) {
-    return _frontSock;
-}
-
-Socket & Client::getBackSocket(void) {
-    return _backSock;
-}
-
-time_point Client::getLastTime(void) const {
-    return _lastTime;
-}
-
-void Client::read(MessageList &list, Socket &socket) {
-    if (socket.read() == 0) {
-        Log.debug() << "Client::read disconnect" << Log.endl;
-        connected = false;
-        return ;
-    }
+void Client::parse(MessageList &list, Socket &socket) {
 
     const std::string &data = socket.getRemainder();
     if (data.size() == 0) {
-        // Log.debug() << "Client::read no data" << Log.endl;
         return ;
     }
 
-    // Checking if previous request\response is not finished.
     Message *msg = nullptr;
-
-    list.lock();    
+    list.lock();
     if (list.size() > 0 && !list.back()->ready()) {
         msg = list.pop();
     }
     list.unlock();
 
+
     // Create new request\response if last was finished,
     // otherwise create a new one.
-    
     if (msg == nullptr) {
-        Log.debug() << "Client::create new msg" << Log.endl;
         msg = new Message(data);
         
         if (msg == nullptr) {
-            Log.crit() << "Client::readRequest: cannot allocate memory" << Log.endl;
+            Log.crit() << "Client::parse: cannot allocate memory" << Log.endl;
             return ;
         }
     } else {
-        Log.debug() << "Client::add data to msg" << Log.endl;
         msg->addData(data);
     }
 
     if (msg->parse()) {
-        queryLog.info() << *msg << queryLog.endl;
-        Log.debug() << "Client::read parsing completed" << Log.endl;
-    } else {
-        queryLog.debug() << *msg << queryLog.endl;
-        Log.debug() << "Client::read parsing not completed" << Log.endl;
+        // Print query SQL requests
+        if (msg->getId() == 'Q') {
+            queryLog.print() << &msg->getData()[5] << queryLog.endl;
+        }
     }
-    
 
     list.push(msg);
 
     // Delete bytes that were parsed 
     socket.removeRemainderBytes(msg->size());
+}
+
+void Client::read(Socket &socket) {
+    if (socket.read() == 0) {
+        Log.debug() << "Client::end of read, disconnect" << Log.endl;
+        connected = false;
+        return ;
+    }
 }
 
 void Client::pass(MessageList &list, Socket &socket) {
@@ -96,6 +91,7 @@ void Client::pass(MessageList &list, Socket &socket) {
     list.unlock();
 
     if (msg != nullptr) {
+        queryLog.print() << *msg << queryLog.endl;
         socket.setData(msg->getData());
 
         socket.write();
@@ -108,12 +104,30 @@ void Client::addReadEvent(int fd) {
     using Type = Event::Type;
 
     if (fd == _frontSock.getFd()) {
-        Log.debug() << "Client::addReadEvent [" << fd << "]: rreq added to queue" << Log.endl;
+        Log.debug() << "Client::addReadEvent [" << fd << "]: READ_REQUEST event added" << Log.endl;
         Globals::eventQueue.push({ this, Type::READ_REQUEST });
 
     } else if (fd == _backSock.getFd()) {
-        Log.debug() << "Client::addReadEvent [" << fd << "]: rres added to queue" << Log.endl;
+        Log.debug() << "Client::addReadEvent [" << fd << "]: READ_RESPONSE event added" << Log.endl;
         Globals::eventQueue.push({ this, Type::READ_RESPONSE });
+    }
+}
+
+void Client::addParseEvent(int fd) {
+    using Type = Event::Type;
+
+    if (fd == _frontSock.getFd()) {
+        
+        if (!_frontSock.getRemainder().empty()) {
+            Log.debug() << "Client::addParseEvent [" << fd << "]: PARSE_REQUEST event added" << Log.endl;
+            Globals::eventQueue.push({ this, Type::PARSE_REQUEST });
+        }
+
+    } else if (fd == _backSock.getFd()) {
+        if (!_backSock.getRemainder().empty()) {
+            Log.debug() << "Client::addParseEvent [" << fd << "]: PARSE_RESPONSE event added" << Log.endl;
+            Globals::eventQueue.push({ this, Type::PARSE_RESPONSE });
+        }
     }
 }
 
@@ -123,7 +137,7 @@ void Client::addPassEvent(int fd) {
     if (fd == _frontSock.getFd()) {
         _responses.lock();
         if (_responses.size() > 0 && _responses.front()->ready()) {
-            Log.debug() << "Client::addPassEvent [" << fd << "]: pres added to queue" << Log.endl;
+            Log.debug() << "Client::addPassEvent [" << fd << "]: PASS_RESPONSE event added" << Log.endl;
             Globals::eventQueue.push({ this, Type::PASS_RESPONSE });
         }
         _responses.unlock();
@@ -131,7 +145,7 @@ void Client::addPassEvent(int fd) {
     } else if (fd == _backSock.getFd()) {
         _requests.lock();
         if (_requests.size() > 0 && _requests.front()->ready()) {
-            Log.debug() << "Client::addPassEvent [" << fd << "]: preq added to queue" << Log.endl;
+            Log.debug() << "Client::addPassEvent [" << fd << "]: PASS_REQUEST event added" << Log.endl;
             Globals::eventQueue.push({ this, Type::PASS_REQUEST });
         }
         _requests.unlock();
@@ -140,20 +154,25 @@ void Client::addPassEvent(int fd) {
 
 
 void Client::readRequest(void) {
-    // Log.debug() << "Client::readRequest" << Log.endl;
-
-    read(_requests, _frontSock);
+    read(_frontSock);
 }
 
 void Client::passRequest(void) {
-    Log.debug() << "Client::passRequest" << Log.endl;
     pass(_requests, _backSock);
 }
 
 void Client::readResponse(void) {
-    read(_responses, _backSock);
+    read(_backSock);
 }
 
 void Client::passResponse(void) {
     pass(_responses, _frontSock);
+}
+
+void Client::parseRequest(void) {
+    parse(_requests, _frontSock);
+}
+
+void Client::parseResponse(void) {
+    parse(_responses, _backSock);
 }

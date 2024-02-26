@@ -8,6 +8,8 @@ struct Event {
         NONE,
         READ_REQUEST,
         READ_RESPONSE,
+        PARSE_REQUEST,
+        PARSE_RESPONSE,
         PASS_REQUEST,
         PASS_RESPONSE
     };

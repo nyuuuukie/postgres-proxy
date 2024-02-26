@@ -9,19 +9,17 @@ Event pullEvent(void) {
     if (!Globals::eventQueue.empty()) {
         event = Globals::eventQueue.pop_front();
         
-        if (event.type != Event::Type::NONE) {
-            if (event.client) {
-                // Only one thread will be working with a client
-                if (event.client->processing) {
-                    Log.debug() << "Client is already processing" << Log.endl;
-                    event = {};
-                } else if (event.client->connected) {
-                    event.client->processing = true;
-                } else {
-                    Log.debug() << "Client not exist or disconnected" << Log.endl;
-                    event = {};
-                }
-            }
+        if (event.type != Event::Type::NONE && event.client) {
+            // Only one thread will be working with a client
+            if (event.client->processing) {
+                Log.debug() << "Client already processing" << Log.endl;
+                event = {};
+            } else if (event.client->connected) {
+                event.client->processing = true;
+            } else {
+                Log.debug() << "Client not exist or disconnected" << Log.endl;
+                event = {};
+            }   
         }
     }
     Globals::eventQueue.unlock();
@@ -32,6 +30,10 @@ Event pullEvent(void) {
 void handleEvent(Event event) {
         if (event.type == Event::Type::READ_REQUEST) {
         event.client->readRequest();
+    } else if (event.type == Event::Type::PARSE_REQUEST) {
+        event.client->parseRequest();
+    } else if (event.type == Event::Type::PARSE_RESPONSE) {
+        event.client->parseResponse();
     } else if (event.type == Event::Type::PASS_REQUEST) {
         event.client->passRequest();
     } else if (event.type == Event::Type::READ_RESPONSE) {
@@ -41,6 +43,8 @@ void handleEvent(Event event) {
     } else {
         Log.error() << "Unknown event " << Log.endl;
     }
+
+    event.client->processing = false;
 }
 
 void   workerCycle(void) {
@@ -50,16 +54,14 @@ void   workerCycle(void) {
     while (Globals::server.isWorking()) {
     
         Event event = pullEvent();
-
+     
         if (!event.isOperative()) {
             // use worker_timeout variable
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            continue;
+            // std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            continue ;
         }
-
+     
         handleEvent(event);
-
-        event.client->processing = false;
     }
 
     Log.debug() << "Worker " << std::this_thread::get_id() << ": cycle stopped" << Log.endl;
