@@ -13,9 +13,6 @@ class Client {
     Socket _frontSock;
     Socket _backSock;
 
-    // time for timeout, updated every send or recv
-    time_point _lastTime;
-
     MessageList _requests;
     MessageList _responses;
 
@@ -30,8 +27,6 @@ public:
     Socket &getBackSocket(void);
 
     int connect(const std::string &host, int port);
-
-    time_point getLastTime(void) const;
 
     void readRequest(void);
     void readResponse(void);

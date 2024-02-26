@@ -1,6 +1,6 @@
 #include "Client.hpp"
 
-Client::Client(void) : _lastTime(Time::now()), connected(true), processing(false) {}
+Client::Client(void) : connected(true), processing(false) {}
 
 Client::~Client(void) {}
 
@@ -10,10 +10,6 @@ Socket & Client::getFrontSocket(void) {
 
 Socket & Client::getBackSocket(void) {
     return _backSock;
-}
-
-time_point Client::getLastTime(void) const {
-    return _lastTime;
 }
 
 // Connects new client to the back server

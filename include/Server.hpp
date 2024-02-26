@@ -11,19 +11,16 @@
 
 #include "Args.hpp"
 #include "Client.hpp"
-#include "Globals.hpp"
 #include "Worker.hpp"
 
 class Server {
 
-    std::vector<struct pollfd>  _pollfds;
-    std::unordered_map<int, Client *> _clients;
-
-    bool _working;
-
+    std::vector<struct pollfd>          _pollfds;
+    std::unordered_map<int, Client *>   _clients;
+    std::vector<std::thread>            _workers;
+    
+    std::atomic<bool> _working;
     Socket _listSock;
-
-    std::vector<std::thread> _workers;
 
 public:
     Server(void);
@@ -46,12 +43,13 @@ private:
 
     int acceptClient(void);
     void addClient(void);
-    void deleteClients(void);
     void addPollfdData(struct pollfd pfd);
     void deleteClient(Client *client);
-
-    void checkClientTimeouts(void);
-
+    void deleteClients(void);
+    void disconnectClients(void);
+    
     void startWorkers(void);
     void stopWorkers(void);
+
+    void checkClientTimeouts(void);
 };

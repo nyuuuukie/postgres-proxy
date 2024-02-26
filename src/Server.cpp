@@ -22,8 +22,7 @@ int Server::initListenSocket(void) {
 Server::Server(void) : _working(true) {
 }
 
-Server::~Server(void) {
-}
+Server::~Server(void) {}
 
 bool Server::isWorking(void) const {
     return _working;
@@ -40,9 +39,11 @@ void sigintHandler(int) {
     Globals::server.stop();
 }
 
+
+// Describes the server's main cycle
 void Server::start(void) {
 
-    Log.info() << "Server starting on " << Args::proxyHost << ":" << Args::proxyPort << Log.endl;
+    Log.info() << "Server is starting on " << Args::proxyHost << ":" << Args::proxyPort << Log.endl;
     Log.info() << "Proxying to " << Args::targetHost << ":" << Args::targetPort << Log.endl;
     Log.info() << "Log level: " << Args::loglvl << Log.endl;
     Log.info() << "Log directory: " << Args::logdir << Log.endl;
@@ -61,19 +62,21 @@ void Server::start(void) {
         if (poll() > 0) {
             process();
         }
-
-        // checkClientTimeouts();
     
         deleteClients();
     }
 
     stopWorkers();
+    disconnectClients();
+    deleteClients();
+
 }
 
+
+// This function runs worker threads until server shutdowns
 void Server::startWorkers(void) {
 
     for (int i = 0; i < Args::workersCount; ++i) {
-        // Add args in case of needs
         _workers.push_back(std::thread(workerCycle));
     }
 
@@ -87,6 +90,8 @@ void Server::stopWorkers(void) {
 }
 
 
+// This function iterates over all pollfd structures
+// returned by poll and calls handlers for that particular event.
 void Server::process(void) {
 
     for (std::size_t i = 0; i < _pollfds.size(); i++) {
@@ -124,6 +129,8 @@ void Server::process(void) {
     }
 }
 
+
+// Just calls poll and logs in case of error
 int Server::poll(void) {
     int res = ::poll(_pollfds.data(), _pollfds.size(), 100000);
 
@@ -149,6 +156,10 @@ int Server::acceptClient(void) {
     return clientFd;
 }
 
+
+// Adds a pollfd structures to the vector of pollfds.
+// Tries to find first empty existing slot.
+// Adding a new structure if not empty slots were found.
 void Server::addPollfdData(struct pollfd pfd) {
     auto it = std::find_if(_pollfds.begin(), _pollfds.end(), [](pollfd pfd) { 
         return pfd.fd == -1; 
@@ -161,6 +172,8 @@ void Server::addPollfdData(struct pollfd pfd) {
     }
 }
 
+
+// Allocates Client
 void Server::addClient(void) {
     
     Client *client = new Client();
@@ -204,8 +217,7 @@ void Server::addClient(void) {
     Log.debug() << "Server::connect [" << clientFrontSocketFd << "] -> [" << clientBackSocketFd << "]" << Log.endl;
 }
 
-void
-Server::checkParseEvent(int fd) {
+void Server::checkParseEvent(int fd) {
 
     Client *client = _clients[fd];
     if (client == nullptr) {
@@ -215,8 +227,7 @@ Server::checkParseEvent(int fd) {
     client->addParseEvent(fd);
 }
 
-void
-Server::pollin(int fd) {
+void Server::pollin(int fd) {
 
     Client *client = _clients[fd];
     if (client == nullptr) {
@@ -226,8 +237,7 @@ Server::pollin(int fd) {
     client->addReadEvent(fd);
 }
 
-void
-Server::pollout(int fd) {
+void Server::pollout(int fd) {
 
     Client *client = _clients[fd];
     if (client == nullptr) {
@@ -237,8 +247,7 @@ Server::pollout(int fd) {
     client->addPassEvent(fd);
 }
 
-void
-Server::pollhup(int fd) {
+void Server::pollhup(int fd) {
 
     Log.debug() << "Server::pollhup [" << fd << "]" << Log.endl;
 
@@ -250,8 +259,7 @@ Server::pollhup(int fd) {
     client->connected = false;
 }
 
-void
-Server::pollerr(int fd) {
+void Server::pollerr(int fd) {
 
     Log.crit() << "Server::pollerr [" << fd << "]" << Log.endl;
 
@@ -271,7 +279,8 @@ void Server::deleteClient(Client *client) {
     _clients[frontFd] = nullptr;
     _clients[backFd] = nullptr;
 
-    // This could be improved not to run through whole vector for every client
+    // This could be improved not to run 
+    // through whole vector for every client
     for (auto &p : _pollfds) {
         if (p.fd == frontFd || p.fd == backFd) {
             p.fd = -1;
@@ -279,24 +288,17 @@ void Server::deleteClient(Client *client) {
     }
 }
 
-void Server::checkClientTimeouts(void) {
-
-    // Move to the constants or settings file
-    const auto maxTimeout = std::chrono::seconds(20);
-
-    // Get current time;
-    const auto currentTime = std::chrono::system_clock::now();
-    for (const auto& [fd, client] : _clients) {
-        if (currentTime - client->getLastTime() > maxTimeout) {
-            Log.debug() << "Client is disconnecting..." << Log.endl;
-            client->connected = false;
-        }
+void Server::disconnectClients(void) {
+    for (auto& [fd, client] : _clients) {
+        client->connected = false;
+        client->processing = false;
     }
 }
 
-// Maybe should be moved to separate class/file
 void Server::deleteClients(void) {
 
+    // Add all disconnected clients to the set
+    // Set is used to get rid of double free
     std::unordered_set<Client *> deleteClients;
     for (auto& [fd, client] : _clients) {
         if (client && !client->connected && !client->processing) {
@@ -315,3 +317,20 @@ void Server::deleteClients(void) {
     }
 
 }
+
+
+// This function is not used, but disconnecting the client
+// by timeout could be added easily using it.
+
+// void Server::checkClientTimeouts(void) {
+//     // Move to the constants or settings file
+//     const auto maxTimeout = std::chrono::seconds(20);
+//     // Get current time;
+//     const auto currentTime = std::chrono::system_clock::now();
+//     for (const auto& [fd, client] : _clients) {
+//         if (currentTime - client->getLastTime() > maxTimeout) {
+//             Log.debug() << "Client is disconnecting..." << Log.endl;
+//             client->connected = false;
+//         }
+//     }
+// }
