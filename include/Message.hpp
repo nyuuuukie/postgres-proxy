@@ -2,6 +2,7 @@
 
 #include <string>
 #include <iostream>
+#include <iomanip>
 
 // This class could be separated into 2 representing front and back
 // messages respectively.

@@ -1,4 +1,5 @@
 #include "Message.hpp"
+#include "Log.hpp"
 
 Message::Message(const std::string &s) : _data(s), _id(0), _len(0), _offset(0), _parseStage(0) {}
 
@@ -41,9 +42,8 @@ void Message::parseLen(void) {
     const int o1 = static_cast<int>(_data[_offset + 3]) << 24;
     const int o2 = static_cast<int>(_data[_offset + 2]) << 16;
     const int o3 = static_cast<int>(_data[_offset + 1]) << 8;
-    const int o4 = static_cast<int>(_data[_offset + 0]);
+    const int o4 = static_cast<int>(_data[_offset + 0]) << 0;
     _len = ntohl(o1 | o2 | o3 | o4);
-    // Equivalent to _len = ntohl(*(int *)&_data[_offset]);
 
     // Substracting size of len field from result
     _len -= lenSize;
@@ -70,6 +70,15 @@ bool Message::parse(void) {
         parseId();
     }
 
+    // For first SSL response
+    if (_id == 'N') {
+        Log.debug() << "SSL response" << Log.endl;
+        if (_data.size() == 1) {
+            _parseStage = 3;
+            return true;
+        }
+    }
+
     if (_data.size() < static_cast<std::size_t>(_offset + lenSize)) {
         return false;
     }
@@ -90,12 +99,32 @@ bool Message::parse(void) {
 }
 
 std::ostream& operator<<(std::ostream &out, const Message &msg) {
+
+    std::size_t offset = 0;
+
     if (msg.getId() != 0) {
-        out << "id: " << msg.getId() << ", ";
+        out << msg.getId();
+        offset++;
+    } else {
+        out << " ";
+    }
+    out << " ";
+
+    const std::size_t size = msg.getLen() + lenSize;
+    if (size != 0) {
+        out << std::setw(3) << std::right << size;
+        offset += lenSize;
+    }
+    out << " ";
+
+    const std::string &data = msg.getData();
+    for (std::size_t i = offset; i < data.size(); ++i) {
+        if (isprint(data[i]) && (i == offset || isprint(data[i - 1]) || data[i - 1] == 0)) {
+            out << data[i];
+        } else {
+            out << "[" << (int)(unsigned char)data[i] << "]";
+        }
     }
 
-    out << "len: " << msg.getLen() << ", ";
-    out << "data: " << msg.getData();
-    
     return out;
 }
