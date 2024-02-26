@@ -44,6 +44,7 @@ void Args::usage(void) {
 
 int Args::parse(char **av) {
 
+    // Convert to string vector to compare easily
     std::vector<std::string> args;
     for (int i = 1; av[i]; ++i) {
         args.push_back(av[i]);
@@ -52,7 +53,7 @@ int Args::parse(char **av) {
     // Type and value validations need to be added here
     // Default values will be set in case of missing\incorrect value
     // but a good solution would be to throw an error here.
-    const int size = args.size() - 1;
+    const int size = args.size();
     for (int i = 0; i < size; ++i) {
                if (args[i] == "-th" || args[i] == "--target-host") {
             // For now host parameter could only contain ipv4 address
@@ -78,6 +79,7 @@ int Args::parse(char **av) {
             Args::workersCount = parseNum(args[++i], "workers", workersCountDefault, 1, 20);
 
         } else {
+            Log.error() << "Unknown parameter: " << args[i] << Log.endl;
             usage();
             return -1;
         }
