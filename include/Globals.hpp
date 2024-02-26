@@ -8,7 +8,6 @@ class Server;
 
 namespace Globals {
 
-    // extern safeQueue<Event *> eventQueue;
     extern EventQueue eventQueue;
     extern Server server;
 
