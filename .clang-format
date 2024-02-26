@@ -1,0 +1,8 @@
+BasedOnStyle: Chromium
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 140
+AllowShortFunctionsOnASingleLine: None
+AccessModifierOffset: -4
+NamespaceIndentation: All
