@@ -7,6 +7,9 @@
 
 #include "Log.hpp"
 
+// These namespace is used to store functions used to parse
+// command line arguments as well as to store the results of parsing
+
 namespace Args {
     extern int targetPort;
     extern int loglvl;
@@ -20,5 +23,5 @@ namespace Args {
     extern int workersCount;
 
     int parse(char **av);
-
+    void usage(void);
 };
