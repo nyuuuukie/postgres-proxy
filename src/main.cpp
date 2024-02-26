@@ -1,8 +1,5 @@
 
 #include "Args.hpp"
-#include "Time.hpp"
-#include "Log.hpp"
-#include "Server.hpp"
 #include "Globals.hpp"
 
 int main(int ac, char **av) {
@@ -14,6 +11,7 @@ int main(int ac, char **av) {
 
     // Server logger settings
     Log.setLogDir(Args::logdir);
+    Log.setLevel(Args::loglvl);
     Log.fileLogs(true);
 
     // Query logger settings

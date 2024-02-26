@@ -38,7 +38,6 @@ void Args::usage(void) {
     Log.info() <<  "\t1 - errors only" << Log.endl;
     Log.info() <<  "\t2 - errors and information logs" << Log.endl;
     Log.info() <<  "\t3 - errors, info and debug messages" << Log.endl;
-    Log.info() <<  "\t4 - log all messages without prefix" << Log.endl;
     Log.info() <<  "-w,  --workers\tWorkers(threads) count" << Log.endl;
 }
 
@@ -73,7 +72,7 @@ int Args::parse(char **av) {
             Args::logdir = parseDir(args[++i], logdirDefault);
 
         } else if (args[i] == "-l" || args[i] == "--loglvl") {
-            Args::loglvl = parseNum(args[++i], "log level", loglvlDefault, 0, 4);
+            Args::loglvl = parseNum(args[++i], "log level", loglvlDefault, 0, 3);
 
         } else if (args[i] == "-w" || args[i] == "--workers") {
             Args::workersCount = parseNum(args[++i], "workers", workersCountDefault, 1, 20);
