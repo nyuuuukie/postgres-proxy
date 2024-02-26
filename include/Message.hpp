@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
+#include <arpa/inet.h>
 
 // This class could be separated into 2 representing front and back
 // messages respectively.
