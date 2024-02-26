@@ -8,7 +8,6 @@
 
 #include "Log.hpp"
 #include "Args.hpp"
-#include "Utils.hpp"
 
 class Socket {
     int         _fd;
@@ -46,4 +45,6 @@ public:
 
     void clear(void);
     void reset(void);
+
+    int resolveHostname(const std::string &host, struct sockaddr_in *resAddr);
 };
