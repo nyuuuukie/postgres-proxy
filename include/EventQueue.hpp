@@ -19,9 +19,8 @@ public:
     }
 
     void push(Event e) {
-        lock();
+        std::lock_guard<std::recursive_mutex> lk(_m_operationLock);
         _queue.push_back(e);
-        unlock();
     }
 
     bool empty(void) const {
@@ -30,7 +29,7 @@ public:
     }
 
     Event pop_front(void) {
-        lock();
+        std::lock_guard<std::recursive_mutex> lk(_m_operationLock);
 
         Event e;
         if (!empty()) {
@@ -38,17 +37,12 @@ public:
             _queue.pop_front();
         }
 
-        unlock();
-
         return e;
     }
 
     template <class UnaryPredicate>
     void remove_if(UnaryPredicate p) {
-        lock();
-
+        std::lock_guard<std::recursive_mutex> lk(_m_operationLock);
         _queue.remove_if(p);
-
-        unlock();
     }
 };
