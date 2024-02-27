@@ -37,7 +37,6 @@ void sigintHandler(int) {
     Log.info() << "Server is stopping..." << Log.endl;
 
     Globals::server.stop();
-    std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 void Server::startupInfo(void) {
