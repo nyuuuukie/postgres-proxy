@@ -19,9 +19,8 @@ public:
     }
 
     void push(Message* msg) {
-        lock();
+        std::lock_guard<std::recursive_mutex> lk(_m_operationLock);
         _l.push_back(msg);
-        unlock();
     }
 
     Message* back(void) const {
@@ -45,7 +44,7 @@ public:
     }
 
     Message* pop_front(void) {
-        lock();
+        std::lock_guard<std::recursive_mutex> lk(_m_operationLock);
 
         Message* msg = nullptr;
         if (!empty()) {
@@ -53,21 +52,17 @@ public:
             _l.pop_front();
         }
 
-        unlock();
-
         return msg;
     }
 
     Message* pop(void) {
-        lock();
+        std::lock_guard<std::recursive_mutex> lk(_m_operationLock);
 
         Message* msg = nullptr;
         if (!empty()) {
             msg = _l.back();
             _l.pop_back();
         }
-
-        unlock();
 
         return msg;
     }
