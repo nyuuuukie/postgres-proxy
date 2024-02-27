@@ -23,16 +23,16 @@ make re
 | -p | --port  | Proxy port (current machine) | 8080 |
 | -w | --workers  | Workers(threads) count | 3 |
 | -d | --log-dir  | Logs directory | logs |
-| -l | --log-lvl  | Logs level | 2 (<span style="color : lawngreen">INFO</span>) |
+| -l | --log-lvl  | Logs level | 2, ![#5485ff](https://placehold.co/15x15/5485ff/5485ff.png) INFO |
 | -a | --log-all-msg | Log all messages | false |
 
 ### Log levels
 | Level | Prefix | Description | 
 | ------------- | ------------- | ------------- |
-| 0 | <span style="color : crimson">CRIT</span>  | Critical errors logs only (system functions failure) |
-| 1 | <span style="color : firebrick">ERROR</span>  | All error logs |
-| 2 | <span style="color : lawngreen">INFO</span>  | Errors and information logs |
-| 3 | <span style="color : khaki">DEBUG</span> | Errors, info and debug logs |
+| 0 | ![#ff6969](https://placehold.co/15x15/ff6969/ff6969.png) CRIT | Critical errors logs only (system functions failure) |
+| 1 | ![#fc69ff](https://placehold.co/15x15/fc69ff/fc69ff.png) ERROR | All error logs |
+| 2 | ![#5485ff](https://placehold.co/15x15/5485ff/5485ff.png) INFO | Errors and information logs |
+| 3 | ![#fff954](https://placehold.co/15x15/fff954/fff954.png) DEBUG | Errors, info and debug logs |
 
 
 ### Examples:
@@ -59,9 +59,9 @@ pg_proxy -d <logdir>
 
 ## Description
 
-This server uses two loggers of Logger class:
+This server uses two [Logger](./include/Log.hpp) class loggers:
 - The first one (Log) used to output server's log messages.
-- The second used to output parsed query messages.
+- The second (queryLog) used to output parsed query messages.
 
 Loggers set up separately. </br>
 By default the first outputs to stdout and to file,
@@ -70,7 +70,7 @@ and the second outputs only to the file by default (prefixed with <b>"query-"</b
 ### Logs examples
 
 
-Query logs only:
+Query logs only example (default):
 ```log
 2024-02-26 21:46:04  INFO Logging into logs/query-26-02-2024_21-46-04.log
 2024-02-26 21:46:14 SHOW config_file;
@@ -85,7 +85,7 @@ Query logs only:
 ...
 ```
 
-Full parsed messages (`-a` flag):
+Full messages logs example (`-a` flag):
 ```log
 2024-02-27 20:00:00  INFO Logging into logs/query-27-02-2024_20-00-00.log
 2024-02-27 20:00:03     8 [4][210][22]/
@@ -111,7 +111,7 @@ Full parsed messages (`-a` flag):
 ...
 ```
 
-Server logs:
+Server logs example:
 ```log
 2024-02-27 20:00:00  INFO Logging into logs/27-02-2024_20-00-00.log
 2024-02-27 20:00:00  INFO Listening on 127.0.0.1:8080
