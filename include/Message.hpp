@@ -11,33 +11,36 @@
 const std::string frontIds = "cdfpBCDEFHPQSX";
 const std::string backIds = "123cdnstvACDEGHIKNRSTVWZ";
 
-const int lenSize = 4;
+const std::size_t lenFieldSize = 4;
 
 class Message {
+
+    enum class Stages { ID, LENGTH, DATA, DONE };
+
     std::string _data;
     char _id;
-    int _len;
-    int _offset;
-    char _parseStage;
+    std::size_t _len;
+    std::size_t _dataLen;
+    Stages _parseStage;
 
 public:
-    Message(const std::string& s);
-    Message(const char* s);
+    Message(void);
+    ~Message(void);
 
-    bool parse(void);
-    int size(void) const;
     bool ready(void) const;
 
-    void addData(const std::string& data);
-
     char getId(void) const;
-    int getLen(void) const;
+    std::size_t getLen(void) const;
     const std::string& getData(void) const;
+
+    std::size_t totalLen(void) const;
+    std::size_t parse(const std::string &newData);
 
 private:
     void parseId(void);
     void parseLen(void);
     void parseData(void);
+
 };
 
 std::ostream& operator<<(std::ostream& out, const Message& msg);

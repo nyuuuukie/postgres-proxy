@@ -1,22 +1,17 @@
 #include "Message.hpp"
 #include "Log.hpp"
 
-Message::Message(const std::string& s) : _data(s), _id(0), _len(0), _offset(0), _parseStage(0) {
+Message::Message(void) : _id(0), _len(0), _dataLen(0), _parseStage(Stages::ID) {
 }
 
-Message::Message(const char* s) : _data(s), _id(0), _len(0), _offset(0), _parseStage(0) {
-}
+Message::~Message(void) {}
 
-int Message::size(void) const {
-    return _offset;
-}
+// std::size_t Message::size(void) const {
+//     return _dataLen;
+// }
 
 bool Message::ready(void) const {
-    return _parseStage == 3;
-}
-
-void Message::addData(const std::string& data) {
-    _data += data;
+    return _parseStage == Stages::DONE;
 }
 
 const std::string& Message::getData(void) const {
@@ -27,80 +22,84 @@ char Message::getId(void) const {
     return _id;
 }
 
-int Message::getLen(void) const {
+std::size_t Message::getLen(void) const {
     return _len;
+}
+
+std::size_t Message::totalLen(void) const {
+    return _len + ((_id != 0) ? 1 : 0);
 }
 
 void Message::parseId(void) {
     if (frontIds.find(_data[0]) != std::string::npos || backIds.find(_data[0]) != std::string::npos) {
         _id = _data[0];
-        _offset++;
+        _dataLen++;
     }
-    _parseStage = 1;
+    _parseStage = Stages::LENGTH;
+
+    // For first SSL response
+    if (_id == 'N' && _data.size() == 1) {
+        Log.debug() << "SSL response" << Log.endl;
+        _parseStage = Stages::DONE;
+    }
 }
 
 void Message::parseLen(void) {
-    const int o1 = static_cast<int>(_data[_offset + 3]) << 24;
-    const int o2 = static_cast<int>(_data[_offset + 2]) << 16;
-    const int o3 = static_cast<int>(_data[_offset + 1]) << 8;
-    const int o4 = static_cast<int>(_data[_offset + 0]) << 0;
-    _len = ntohl(o1 | o2 | o3 | o4);
+    const int i = _dataLen;
+    const int oct1 = static_cast<int>(_data[i + 3]) << 24;
+    const int oct2 = static_cast<int>(_data[i + 2]) << 16;
+    const int oct3 = static_cast<int>(_data[i + 1]) << 8;
+    const int oct4 = static_cast<int>(_data[i]);
+    _len = ntohl(oct1 | oct2 | oct3 | oct4);
 
-    // Substracting size of len field from result
-    _len -= lenSize;
+    _dataLen += lenFieldSize;
 
-    _offset += lenSize;
-    _parseStage = 2;
+    _parseStage = Stages::DATA;
 }
 
 void Message::parseData(void) {
-    _offset += _len;
-    _data = _data.substr(0, _offset);
+    _dataLen += _len - lenFieldSize;
+    _data = _data.substr(0, _dataLen);
 
-    _parseStage = 3;
+    _parseStage = Stages::DONE;
 }
 
-// Returns true if parsing succeeded, false otherwise
-bool Message::parse(void) {
-    if (_data.size() == 0) {
-        return false;
+// Returns amount of parsed bytes 
+std::size_t Message::parse(const std::string &newData) {
+
+    if (newData.size() == 0) {
+        return 0;
     }
 
-    if (_parseStage == 0) {
+    _data += newData;
+    std::size_t bytes = newData.size();
+
+    if (_parseStage == Stages::ID) {
         parseId();
     }
 
-    // For first SSL response
-    if (_id == 'N') {
-        Log.debug() << "SSL response" << Log.endl;
-        if (_data.size() == 1) {
-            _parseStage = 3;
-            return true;
+    if (_parseStage == Stages::LENGTH) {
+        if (_data.size() >= _dataLen + lenFieldSize) {
+            parseLen();
         }
     }
 
-    if (_data.size() < static_cast<std::size_t>(_offset + lenSize)) {
-        return false;
+    if (_parseStage == Stages::DATA) {
+        if (_data.size() >= totalLen()) {
+            bytes -= _data.size() - totalLen();
+            parseData();
+        }
     }
 
-    if (_parseStage == 1) {
-        parseLen();
-    }
-
-    if (_data.size() < static_cast<std::size_t>(_offset + _len)) {
-        return false;
-    }
-
-    if (_parseStage == 2) {
-        parseData();
-    }
-
-    return true;
+    return bytes;
 }
 
+
+// Formatted output for whole message 
 std::ostream& operator<<(std::ostream& out, const Message& msg) {
     std::size_t offset = 0;
 
+    // Print message identifier
     if (msg.getId() != 0) {
         out << msg.getId();
         offset++;
@@ -109,16 +108,18 @@ std::ostream& operator<<(std::ostream& out, const Message& msg) {
     }
     out << " ";
 
-    const std::size_t size = msg.getLen() + lenSize;
+    // Print message len
+    const std::size_t size = msg.getLen();
     if (size != 0) {
         out << std::setw(3) << std::right << size;
-        offset += lenSize;
+        offset += lenFieldSize;
     }
     out << " ";
 
+    // Print message data
     const std::string& data = msg.getData();
     for (std::size_t i = offset; i < data.size(); ++i) {
-        if (isprint(data[i])) { //&& (i == offset || isprint(data[i - 1]) || !isprint(data[i - 1]))) {
+        if (isprint(data[i])) { // && (i == offset || isprint(data[i - 1]) || !isprint(data[i - 1]))) {
             out << data[i];
         } else {
             out << "[" << (int)(unsigned char)data[i] << "]";
