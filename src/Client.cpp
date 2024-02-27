@@ -31,9 +31,8 @@ int Client::connect(const std::string& host, int port) {
 
 // Returns the last message in the list if it's not parsed fully.
 // Otherwise, allocates a new message and returns it.
-Message *Client::pullMessage(MessageList& list) {
-
-    Message *msg = nullptr;
+Message* Client::pullMessage(MessageList& list) {
+    Message* msg = nullptr;
     list.lock();
     if (list.size() > 0 && !list.back()->ready()) {
         msg = list.pop();
@@ -51,7 +50,7 @@ Message *Client::pullMessage(MessageList& list) {
     return msg;
 }
 
-void Client::logMessage(const Message *msg) const {
+void Client::logMessage(const Message* msg) const {
     if (Args::logAllMessages) {
         queryLog.print() << *msg << queryLog.endl;
     } else {
@@ -62,16 +61,14 @@ void Client::logMessage(const Message *msg) const {
     }
 }
 
-
 // Parses a message and returns amount of bytes that were processed
 int Client::parse(MessageList& list, Socket& socket) {
-
     const std::string& data = socket.getRemainder();
     if (data.size() == 0) {
         return 0;
     }
 
-    Message *msg = pullMessage(list);
+    Message* msg = pullMessage(list);
     if (msg == nullptr) {
         return 0;
     }
@@ -86,7 +83,6 @@ int Client::parse(MessageList& list, Socket& socket) {
     Log.debug() << "Client::parse [" << socket.getFd() << "]: " << parsedBytes << " bytes" << Log.endl;
     return parsedBytes;
 }
-
 
 // Reads request\response and parses as much as possible.
 void Client::read(MessageList& list, Socket& socket) {
@@ -105,8 +101,7 @@ void Client::read(MessageList& list, Socket& socket) {
     } while (bytes);
 }
 
-
-// Passing ready request to the backend server, 
+// Passing ready request to the backend server,
 // or ready response to the client.
 void Client::pass(MessageList& list, Socket& socket) {
     Message* msg = nullptr;
@@ -125,7 +120,6 @@ void Client::pass(MessageList& list, Socket& socket) {
     }
 }
 
-
 void Client::addReadEvent(int fd) {
     using Type = Event::Type;
 
@@ -138,7 +132,6 @@ void Client::addReadEvent(int fd) {
         Globals::eventQueue.push({this, Type::READ_RESPONSE});
     }
 }
-
 
 void Client::addPassEvent(int fd) {
     using Type = Event::Type;

@@ -4,7 +4,8 @@
 Message::Message(void) : _id(0), _len(0), _dataLen(0), _parseStage(Stages::ID) {
 }
 
-Message::~Message(void) {}
+Message::~Message(void) {
+}
 
 // std::size_t Message::size(void) const {
 //     return _dataLen;
@@ -64,9 +65,8 @@ void Message::parseData(void) {
     _parseStage = Stages::DONE;
 }
 
-// Returns amount of parsed bytes 
-std::size_t Message::parse(const std::string &newData) {
-
+// Returns amount of parsed bytes
+std::size_t Message::parse(const std::string& newData) {
     if (newData.size() == 0) {
         return 0;
     }
@@ -94,8 +94,7 @@ std::size_t Message::parse(const std::string &newData) {
     return bytes;
 }
 
-
-// Formatted output for whole message 
+// Formatted output for whole message
 std::ostream& operator<<(std::ostream& out, const Message& msg) {
     std::size_t offset = 0;
 
@@ -119,7 +118,7 @@ std::ostream& operator<<(std::ostream& out, const Message& msg) {
     // Print message data
     const std::string& data = msg.getData();
     for (std::size_t i = offset; i < data.size(); ++i) {
-        if (isprint(data[i])) { // && (i == offset || isprint(data[i - 1]) || !isprint(data[i - 1]))) {
+        if (isprint(data[i])) {  // && (i == offset || isprint(data[i - 1]) || !isprint(data[i - 1]))) {
             out << data[i];
         } else {
             out << "[" << (int)(unsigned char)data[i] << "]";

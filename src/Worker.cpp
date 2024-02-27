@@ -8,7 +8,6 @@ Event pullEvent(void) {
         event = Globals::eventQueue.pop_front();
 
         if (event.type != Event::Type::NONE && event.client) {
-            
             // Only one thread will be working with a client
             if (event.client->processing) {
                 Log.debug() << "Client already processing" << Log.endl;
