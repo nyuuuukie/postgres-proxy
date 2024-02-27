@@ -29,17 +29,17 @@ public:
 
     void readRequest(void);
     void readResponse(void);
-    void parseRequest(void);
-    void parseResponse(void);
     void passRequest(void);
     void passResponse(void);
 
     void addReadEvent(int fd);
-    void addParseEvent(int fd);
     void addPassEvent(int fd);
+
+    Message *pullMessage(MessageList& list);
+    void logMessage(const Message *msg) const;
 
 private:
     void read(MessageList& list, Socket& socket);
-    void parse(MessageList& list, Socket& socket);
+    int parse(MessageList& list, Socket& socket);
     void pass(MessageList& list, Socket& socket);
 };
