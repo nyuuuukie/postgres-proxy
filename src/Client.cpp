@@ -4,6 +4,17 @@ Client::Client(void) : connected(true), processing(false) {
 }
 
 Client::~Client(void) {
+    while (_requests.size()) {
+        Message* msg = _requests.back();
+        _requests.pop();
+        delete msg;
+    }
+
+    while (_responses.size()) {
+        Message* msg = _responses.back();
+        _responses.pop();
+        delete msg;
+    }
 }
 
 Socket& Client::getFrontSocket(void) {
