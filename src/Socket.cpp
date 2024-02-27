@@ -119,7 +119,7 @@ int Socket::connect(const std::string& host, int port) {
 
 int Socket::nonblock(void) {
     if (fcntl(_fd, F_SETFL, O_NONBLOCK) < 0) {
-        Log.crit() << "Socket::fcntl(O_NONBLOCK) failed, fd: " << _fd << " " << Log.endl;
+        Log.crit() << "Socket::nonblock failed [" << _fd << "]" << Log.endl;
         return -1;
     }
     return 0;
@@ -158,7 +158,7 @@ int Socket::read(void) {
 
     if (bytes > 0) {
         buf[bytes] = '\0';
-
+        Log.debug() << "Socket::read [" << _fd << "]: " << bytes << " bytes" << Log.endl;
         _remainder.append(buf, bytes);
     }
 
