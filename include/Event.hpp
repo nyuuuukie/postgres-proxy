@@ -3,7 +3,7 @@
 class Client;
 
 struct Event {
-    enum class Type { NONE, READ_REQUEST, READ_RESPONSE, PARSE_REQUEST, PARSE_RESPONSE, PASS_REQUEST, PASS_RESPONSE };
+    enum class Type { NONE, READ_REQUEST, READ_RESPONSE, PASS_REQUEST, PASS_RESPONSE };
 
     Client* client;
     Type type;

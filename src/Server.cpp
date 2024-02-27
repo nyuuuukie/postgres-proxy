@@ -115,8 +115,6 @@ void Server::process(void) {
                 if (_pollfds[i].revents & POLLOUT) {
                     pollout(fd);
                 }
-
-                // checkParseEvent(fd);
             }
         }
 
@@ -202,15 +200,6 @@ void Server::addClient(void) {
     addPollfdData({clientBackSocketFd, POLLIN | POLLOUT, 0});
 
     Log.debug() << "Server::connect [" << clientFrontSocketFd << "] -> [" << clientBackSocketFd << "]" << Log.endl;
-}
-
-void Server::checkParseEvent(int fd) {
-    Client* client = _clients[fd];
-    if (client == nullptr) {
-        return;
-    }
-
-    client->addParseEvent(fd);
 }
 
 void Server::pollin(int fd) {

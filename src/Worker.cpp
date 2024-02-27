@@ -8,6 +8,7 @@ Event pullEvent(void) {
         event = Globals::eventQueue.pop_front();
 
         if (event.type != Event::Type::NONE && event.client) {
+            
             // Only one thread will be working with a client
             if (event.client->processing) {
                 Log.debug() << "Client already processing" << Log.endl;
@@ -28,10 +29,6 @@ Event pullEvent(void) {
 void handleEvent(Event event) {
     if (event.type == Event::Type::READ_REQUEST) {
         event.client->readRequest();
-    } else if (event.type == Event::Type::PARSE_REQUEST) {
-        event.client->parseRequest();
-    } else if (event.type == Event::Type::PARSE_RESPONSE) {
-        event.client->parseResponse();
     } else if (event.type == Event::Type::PASS_REQUEST) {
         event.client->passRequest();
     } else if (event.type == Event::Type::READ_RESPONSE) {
@@ -46,7 +43,7 @@ void handleEvent(Event event) {
 }
 
 void workerCycle(void) {
-    Log.debug() << "Worker " << std::this_thread::get_id() << ": cycle started" << Log.endl;
+    Log.debug() << "Worker " << std::this_thread::get_id() << " started" << Log.endl;
 
     while (Globals::server.isWorking()) {
         Event event = pullEvent();
@@ -58,5 +55,5 @@ void workerCycle(void) {
         handleEvent(event);
     }
 
-    Log.debug() << "Worker " << std::this_thread::get_id() << ": cycle stopped" << Log.endl;
+    Log.debug() << "Worker " << std::this_thread::get_id() << " stopped" << Log.endl;
 }
