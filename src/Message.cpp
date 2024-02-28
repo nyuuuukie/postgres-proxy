@@ -7,10 +7,6 @@ Message::Message(void) : _id(0), _len(0), _dataLen(0), _parseStage(Stages::ID) {
 Message::~Message(void) {
 }
 
-// std::size_t Message::size(void) const {
-//     return _dataLen;
-// }
-
 bool Message::ready(void) const {
     return _parseStage == Stages::DONE;
 }
