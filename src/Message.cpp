@@ -92,17 +92,14 @@ std::size_t Message::parse(const std::string& newData, std::size_t dataSize, std
 
     if (_parseStage == Stages::ID) {
         bytes += parseId(newData, dataSize, pos + bytes);
-        // Log.debug() << "Parsing id: " << bytes << Log.endl;
     }
 
     if (_parseStage == Stages::LENGTH) {
         bytes += parseLen(newData, dataSize, pos + bytes);
-        // Log.debug() << "Parsing len: " << bytes << ", " << _len << Log.endl;
     }
 
     if (_parseStage == Stages::DATA) {
         bytes += parseData(newData, dataSize, bytes);
-        // Log.debug() << "Parsing data: " << bytes << Log.endl;
     }
 
     _dataLen += bytes;
