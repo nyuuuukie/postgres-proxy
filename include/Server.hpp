@@ -12,12 +12,11 @@
 
 #include "Args.hpp"
 #include "Client.hpp"
-#include "Worker.hpp"
 #include "Socket.hpp"
 
 class Server {
     std::vector<struct pollfd> _pollfds;
-    std::unordered_map<int, Client*> _clients;
+    std::unordered_map<int, Client *> _clients;
     std::vector<std::thread> _workers;
 
     std::atomic<bool> _working;

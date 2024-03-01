@@ -33,10 +33,9 @@ void Server::stop(void) {
 }
 
 void sigintHandler(int) {
+    Globals::server->stop();
     std::cout << std::endl;
     Log.info() << "Server is stopping..." << Log.endl;
-
-    Globals::server->stop();
 }
 
 void Server::startupInfo(void) {
@@ -70,6 +69,22 @@ void Server::start(void) {
 
     disconnectClients();
     deleteClients();
+}
+
+void workerCycle(void) {
+    Log.debug() << "Worker " << std::this_thread::get_id() << " started" << Log.endl;
+
+    while (Globals::server->isWorking()) {
+        Event event = Globals::eventQueue.pull();
+
+        if (!event.isOperative()) {
+            continue;
+        }
+
+        event.handle();
+    }
+
+    Log.debug() << "Worker " << std::this_thread::get_id() << " stopped" << Log.endl;
 }
 
 // This function runs worker threads until server shutdowns
@@ -226,7 +241,7 @@ void Server::pollhup(int fd) {
         return ;
     }
 
-    client->connected = false;
+    client->connected.store(false);
 }
 
 void Server::pollerr(int fd) {
@@ -237,7 +252,7 @@ void Server::pollerr(int fd) {
         return;
     }
 
-    client->connected = false;
+    client->connected.store(false);
 }
 
 void Server::deleteClient(Client* client) {
@@ -258,8 +273,8 @@ void Server::deleteClient(Client* client) {
 void Server::disconnectClients(void) {
     for (auto& [fd, client] : _clients) {
         if (client) {
-            client->connected = false;
-            client->processing = false;
+            client->connected.store(false);
+            client->processing.store(false);
         }
     }
 }
@@ -269,7 +284,7 @@ void Server::deleteClients(void) {
     // Set is used to get rid of double free
     std::unordered_set<Client*> deleteClients;
     for (auto& [fd, client] : _clients) {
-        if (client && !client->connected && !client->processing) {
+        if (client && !client->connected.load() && !client->processing.load()) {
             deleteClients.insert(client);
         }
     }

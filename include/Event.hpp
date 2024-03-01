@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Log.hpp"
+
 class Client;
 
 struct Event {
@@ -8,13 +10,11 @@ struct Event {
     Client* client;
     Type type;
 
-    Event(void) : client(nullptr), type(Type::NONE) {
-    }
+    Event(void);
+    Event(Client* client, Type type);
 
-    Event(Client* client, Type type) : client(client), type(type) {
-    }
-
-    bool isOperative(void) const {
-        return type != Type::NONE && client != nullptr;
-    }
+    bool isOperative(void) const;
+    void handle(void);
 };
+
+#include "Client.hpp"

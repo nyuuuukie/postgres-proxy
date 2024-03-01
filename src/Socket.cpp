@@ -1,6 +1,6 @@
 #include "Socket.hpp"
 
-static const std::size_t BUFFER_SIZE = 4095;
+static const std::size_t BUFFER_SIZE = 2048;
 
 Socket::Socket(void) : _fd(-1), _nonblocking(false), _dataPos(0) {
 }
@@ -149,7 +149,7 @@ int Socket::listen(const std::string& addr, int port) {
 
 int Socket::read(void) {
     std::string buffer;
-    buffer.resize(BUFFER_SIZE + 1);
+    buffer.resize(BUFFER_SIZE);
 
     const int bytes = ::read(_fd, &buffer[0], BUFFER_SIZE);
 

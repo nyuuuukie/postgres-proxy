@@ -71,7 +71,7 @@ void Client::read(Socket& s1, Socket& s2) {
         const int bytes = s1.read();
         if (bytes == 0) {
             Log.debug() << "Disconnect client" << Log.endl;
-            connected = false;
+            connected.store(false);
             return ;
         } else if (bytes < 0) {
             return ;
@@ -125,15 +125,12 @@ void Client::parseResponse(void) {
 void Client::parse(MessageList &list, Socket &sock) {
     const int fd = sock.getFd();
 
-    // Log.debug() << "Client::parse [" << fd << "]: " << Log.endl;
     do {
         if (sock.getReadDataSize() == 0) {
             return ;
         }
 
-        std::string data = sock.getFirstReadData();     
-      
-        // Log.debug() << "Client:: parse size " << data.size() << Log.endl;
+        std::string data = sock.getFirstReadData();
         if (data.size() == 0) {
             break ;
         }
@@ -144,7 +141,6 @@ void Client::parse(MessageList &list, Socket &sock) {
                 return;
             }
 
-            // Log.debug() << "Client:: parse " << data.size() - pos << " " << pos << Log.endl;
             bytes = msg->parse(data, data.size() - pos, pos);
             if (bytes == 0) {
                 break;
@@ -152,7 +148,6 @@ void Client::parse(MessageList &list, Socket &sock) {
         
             if (msg->ready()) {
                 msg->log();
-                // Log.debug() << "Message is ready" << Log.endl;
 
                 // Messages could be stored instead
                 delete msg;
