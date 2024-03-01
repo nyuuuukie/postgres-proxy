@@ -38,7 +38,7 @@ void Logger::fileLogs(bool flag) {
     _fileLogs = flag;
     if (_fileLogs) {
         // Constants could be moved to another file with other settings
-        _logfile = _logDir + _logFilePrefix + Time::nowFmtString("%d-%m-%Y_%H-%M-%S") + ".log";
+        _logfile = _logDir + _logFilePrefix + Time::nowFmtString("%m-%d-%Y_%H-%M-%S") + ".log";
 
         _out.open(_logfile, std::ios_base::out | std::ios_base::trunc);
 
