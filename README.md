@@ -67,6 +67,10 @@ Loggers set up separately. </br>
 By default the first outputs to stdout and to file,
 and the second outputs only to the file by default (prefixed with <b>"query-"</b>).
 
+### Server diagram:
+
+![diagram.jpg](./img/diagram.jpg)
+
 ### Logs examples
 
 
@@ -135,3 +139,5 @@ Server logs example:
 2024-02-27 20:00:03 DEBUG Client::parse [7]: 1 bytes
 ...
 ```
+
+
