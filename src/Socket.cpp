@@ -1,6 +1,6 @@
 #include "Socket.hpp"
 
-static const std::size_t BUFFER_SIZE = 2048;
+static const std::size_t BUFFER_SIZE = 256;
 
 Socket::Socket(void) : _fd(-1), _nonblocking(false), _dataPos(0) {
 }
