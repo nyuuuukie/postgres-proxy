@@ -3,13 +3,14 @@
 class Client;
 
 struct Event {
-    enum class Type { NONE, READ_REQUEST, READ_RESPONSE, PASS_REQUEST, PASS_RESPONSE };
+    enum class Type { NONE, PARSE_REQUEST, PARSE_RESPONSE };
 
     Client* client;
     Type type;
 
     Event(void) : client(nullptr), type(Type::NONE) {
     }
+
     Event(Client* client, Type type) : client(client), type(type) {
     }
 
