@@ -1,7 +1,7 @@
 #include "Message.hpp"
 #include "Log.hpp"
 
-Message::Message(void) : _id(0), _len(0), _dataLen(0), _parseStage(Stages::ID) {
+Message::Message(void) : _id(0), _len(0), _dataLen(0), _offset(0), _parseStage(Stages::ID) {
 }
 
 Message::~Message(void) {
@@ -23,98 +23,125 @@ std::size_t Message::getLen(void) const {
     return _len;
 }
 
-std::size_t Message::totalLen(void) const {
-    return _len + ((_id != 0) ? 1 : 0);
+inline std::size_t Message::idLen(void) const {
+    return (_id != 0) ? 1 : 0;
 }
 
-void Message::parseId(void) {
-    if (frontIds.find(_data[0]) != std::string::npos || backIds.find(_data[0]) != std::string::npos) {
-        _id = _data[0];
-        _dataLen++;
+inline std::size_t Message::totalLen(void) const {
+    return _len + idLen();
+}
+
+inline std::size_t Message::headerLen(void) const {
+    return lenFieldSize + idLen();
+}
+
+std::size_t Message::parseId(const std::string &data, std::size_t dataSize, std::size_t pos) {
+
+    if (frontIds.find(data[pos]) != std::string::npos || \
+         backIds.find(data[pos]) != std::string::npos) {
+        _id = data[pos];
     }
     _parseStage = Stages::LENGTH;
 
     // For first SSL response
-    if (_id == 'N' && _data.size() == 1) {
+    if (_id == 'N' && dataSize == 1) {
         Log.debug() << "SSL response" << Log.endl;
         _parseStage = Stages::DONE;
     }
+
+    return idLen();
 }
 
-void Message::parseLen(void) {
-    const int i = _dataLen;
-    const int oct1 = static_cast<int>(_data[i + 3]) << 24;
-    const int oct2 = static_cast<int>(_data[i + 2]) << 16;
-    const int oct3 = static_cast<int>(_data[i + 1]) << 8;
-    const int oct4 = static_cast<int>(_data[i]);
-    _len = ntohl(oct1 | oct2 | oct3 | oct4);
+inline std::size_t Message::parseLen(const std::string &data, std::size_t dataSize, std::size_t pos) {
 
-    _dataLen += lenFieldSize;
+    std::size_t i = pos;
+    for (; i < pos + dataSize && _offset < 32; ++i) {
+        const std::size_t c = static_cast<std::size_t>(data[i]);
+        _len |= (c << _offset);
+        _offset += 8;
+    }
 
-    _parseStage = Stages::DATA;
+    if (_offset == 32) {
+        _len = ntohl(_len);
+        _parseStage = Stages::DATA;
+    }
+
+    return i - pos;
 }
 
-void Message::parseData(void) {
-    _dataLen += _len - lenFieldSize;
-    _data = _data.substr(0, _dataLen);
+inline std::size_t Message::parseData(const std::string &data, std::size_t dataSize, std::size_t pos) {
+    (void)data;
 
-    _parseStage = Stages::DONE;
+    if (_dataLen + dataSize >= totalLen()) {
+        dataSize = totalLen() - _dataLen - pos;
+
+        _parseStage = Stages::DONE;
+    }
+
+    return dataSize;
 }
 
-// Returns amount of parsed bytes
-std::size_t Message::parse(const std::string& newData) {
-    if (newData.size() == 0) {
+// Parses a message and returns amount of bytes that were processed 
+std::size_t Message::parse(const std::string& newData, std::size_t dataSize, std::size_t pos) {
+    
+    if (dataSize == 0) {
         return 0;
     }
 
-    _data += newData;
-    std::size_t bytes = newData.size();
+    std::size_t bytes = 0;
 
     if (_parseStage == Stages::ID) {
-        parseId();
+        bytes += parseId(newData, dataSize, pos + bytes);
+        // Log.debug() << "Parsing id: " << bytes << Log.endl;
     }
 
     if (_parseStage == Stages::LENGTH) {
-        if (_data.size() >= _dataLen + lenFieldSize) {
-            parseLen();
-        }
+        bytes += parseLen(newData, dataSize, pos + bytes);
+        // Log.debug() << "Parsing len: " << bytes << ", " << _len << Log.endl;
     }
 
     if (_parseStage == Stages::DATA) {
-        if (_data.size() >= totalLen()) {
-            bytes -= _data.size() - totalLen();
-            parseData();
-        }
+        bytes += parseData(newData, dataSize, bytes);
+        // Log.debug() << "Parsing data: " << bytes << Log.endl;
     }
 
+    _dataLen += bytes;
+    _data.append(newData, pos, bytes);
+
     return bytes;
+}
+
+
+void Message::log(void) const {
+    if (Args::logAllMessages) {
+        queryLog.print() << *this << queryLog.endl;
+    } else {
+        // Print query SQL requests
+        if (_id == 'Q') {
+            queryLog.print() << &_data[5] << queryLog.endl;
+        }
+    }
 }
 
 // Formatted output for whole message
 std::ostream& operator<<(std::ostream& out, const Message& msg) {
     std::size_t offset = 0;
 
+    const char id = msg.getId();
+    const size_t len = msg.getLen();
+    const std::string& data = msg.getData();
+
     // Print message identifier
-    if (msg.getId() != 0) {
-        out << msg.getId();
-        offset++;
-    } else {
-        out << " ";
-    }
-    out << " ";
+    out << std::setw(1) << (id ? id : ' ') << ' ';
+    offset += (id ? 1 : 0);
 
     // Print message len
-    const std::size_t size = msg.getLen();
-    if (size != 0) {
-        out << std::setw(3) << std::right << size;
-        offset += lenFieldSize;
-    }
-    out << " ";
+    out << std::setw(3) << (len ? len : ' ') << ' ';
+    offset += len ? lenFieldSize : 0;
 
     // Print message data
-    const std::string& data = msg.getData();
     for (std::size_t i = offset; i < data.size(); ++i) {
-        if (isprint(data[i])) {  // && (i == offset || isprint(data[i - 1]) || !isprint(data[i - 1]))) {
+        if (isprint(data[i])) {
             out << data[i];
         } else {
             out << "[" << (int)(unsigned char)data[i] << "]";

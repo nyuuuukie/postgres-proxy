@@ -5,6 +5,7 @@
 #include <string>
 #include <arpa/inet.h>
 
+#include "Args.hpp"
 // This class could be separated into 2 representing front and back
 // messages respectively.
 
@@ -21,7 +22,10 @@ class Message {
     char _id;
     std::size_t _len;
     std::size_t _dataLen;
+    std::size_t _offset;
     Stages _parseStage;
+    
+    std::string _message;
 
 public:
     Message(void);
@@ -33,13 +37,18 @@ public:
     std::size_t getLen(void) const;
     const std::string& getData(void) const;
 
+    std::size_t parse(const std::string &data, std::size_t dataSize, std::size_t pos);
+
+    void log(void) const;
+
+    std::size_t idLen(void) const;
     std::size_t totalLen(void) const;
-    std::size_t parse(const std::string &newData);
+    std::size_t headerLen(void) const;
 
 private:
-    void parseId(void);
-    void parseLen(void);
-    void parseData(void);
+    std::size_t parseId(const std::string &data, std::size_t dataSize, std::size_t pos);
+    std::size_t parseLen(const std::string &data, std::size_t dataSize, std::size_t pos);
+    std::size_t parseData(const std::string &data, std::size_t dataSize, std::size_t pos);
 
 };
 
