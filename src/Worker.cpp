@@ -40,7 +40,7 @@ void handleEvent(Event event) {
 void workerCycle(void) {
     Log.debug() << "Worker " << std::this_thread::get_id() << " started" << Log.endl;
 
-    while (Globals::server.isWorking()) {
+    while (Globals::server->isWorking()) {
         Event event = pullEvent();
 
         if (!event.isOperative()) {

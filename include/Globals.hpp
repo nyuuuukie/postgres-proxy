@@ -8,7 +8,7 @@ class Server;
 
 namespace Globals {
     extern EventQueue eventQueue;
-    extern Server server;
+    extern Server *server;
 };  // namespace Globals
 
 #include "Server.hpp"

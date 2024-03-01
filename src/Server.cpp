@@ -36,7 +36,7 @@ void sigintHandler(int) {
     std::cout << std::endl;
     Log.info() << "Server is stopping..." << Log.endl;
 
-    Globals::server.stop();
+    Globals::server->stop();
 }
 
 void Server::startupInfo(void) {

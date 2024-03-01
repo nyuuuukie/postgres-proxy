@@ -21,7 +21,13 @@ int main(int ac, char** av) {
     queryLog.fileLogs(true);
     queryLog.stdoutLogs(false);
 
-    Globals::server.start();
+    Globals::server = new Server();
+    if (Globals::server == nullptr) {
+        Log.crit() << "Couldn't allocate server" << Log.endl;
+    } else {
+        Globals::server->start();
+        delete Globals::server;
+    }
 
     return 0;
 }
