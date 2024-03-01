@@ -1,12 +1,13 @@
 #include "Socket.hpp"
 
-static const std::size_t BUFFER_SIZE = 65536;
+static const std::size_t BUFFER_SIZE = 4095;
 
-Socket::Socket(void) : _fd(-1), _dataSize(0), _dataPos(0) {
+Socket::Socket(void) : _fd(-1), _nonblocking(false), _dataPos(0) {
 }
 
 Socket::~Socket(void) {
     if (_fd != -1) {
+        Log.debug() << "Socket:: [" << _fd << "] is closed" << Log.endl;
         close(_fd);
     }
 }
@@ -19,55 +20,49 @@ void Socket::setFd(int fd) {
     _fd = fd;
 }
 
-const std::string& Socket::getRemainder(void) const {
-    return _remainder;
+std::recursive_mutex& Socket::getLock(void) const {
+    return _lock;
 }
 
-void Socket::setRemainder(const std::string& rem) {
-    _remainder = rem;
+void Socket::lock(void) {
+    _lock.lock();
 }
 
-void Socket::removeRemainderBytes(int bytes) {
-    if (bytes > 0) {
-        _remainder.erase(0, bytes);
-    }
+void Socket::unlock(void) {
+    _lock.unlock();
 }
 
-void Socket::setData(const std::string& data) {
-    _data = data;
-    setDataSize(data.length());
+std::size_t Socket::getReadDataSize(void) const {
+    std::lock_guard<std::recursive_mutex> l(_lock);
+    return _readData.size();
 }
 
-void Socket::setDataSize(std::size_t size) {
-    _dataSize = size;
+const std::string& Socket::getFirstReadData(void) {
+    std::lock_guard<std::recursive_mutex> l(_lock);
+    return _readData.front();
 }
 
-void Socket::setDataPos(std::size_t pos) {
-    _dataPos = pos;
+const std::string& Socket::getLastReadData(void) {
+    std::lock_guard<std::recursive_mutex> l(_lock);
+    return _readData.back();
 }
 
-const std::string& Socket::getData(void) const {
-    return _data;
+void Socket::removeFirstReadData(void) {
+    std::lock_guard<std::recursive_mutex> l(_lock);
+    _readData.pop_front();
 }
 
-std::size_t Socket::getDataSize(void) const {
-    return _dataSize;
+void Socket::removeLastReadData(void) {
+    std::lock_guard<std::recursive_mutex> l(_lock);
+    _readData.pop_back();
 }
 
-std::size_t Socket::getDataPos(void) const {
-    return _dataPos;
+void Socket::addWriteData(const std::string& s) {
+    _writeData.push_back(s);
 }
 
-void Socket::clear(void) {
-    _data = "";
-    setDataPos(0);
-    setDataSize(0);
-}
-
-void Socket::reset(void) {
-    setFd(-1);
-    clear();
-    _remainder = "";
+bool Socket::readyToWrite(void) const {
+    return !_writeData.empty();
 }
 
 int Socket::socket() {
@@ -122,6 +117,7 @@ int Socket::nonblock(void) {
         Log.crit() << "Socket::nonblock failed [" << _fd << "]" << Log.endl;
         return -1;
     }
+    _nonblocking = true;
     return 0;
 }
 
@@ -152,28 +148,46 @@ int Socket::listen(const std::string& addr, int port) {
 }
 
 int Socket::read(void) {
-    char buf[BUFFER_SIZE + 1] = {0};
+    std::string buffer;
+    buffer.resize(BUFFER_SIZE + 1);
 
-    int bytes = ::read(_fd, buf, BUFFER_SIZE);
+    const int bytes = ::read(_fd, &buffer[0], BUFFER_SIZE);
 
     if (bytes > 0) {
-        buf[bytes] = '\0';
+        buffer.resize(bytes);
+
+        _lock.lock();
+        _readData.push_back(std::move(buffer));
+        _lock.unlock();
+
         Log.debug() << "Socket::read [" << _fd << "]: " << bytes << " bytes" << Log.endl;
-        _remainder.append(buf, bytes);
+    } else if (bytes == 0) {
+        Log.debug() << "Socket::read finished" << Log.endl;
+    } else {
+        if (!_nonblocking) {
+            Log.crit() << "Socket::nonblocking socket failed" << Log.endl;
+        }
     }
 
     return bytes;
 }
 
 int Socket::write(void) {
-    long bytes = ::write(_fd, _data.c_str() + _dataPos, _dataSize - _dataPos);
+    if (_writeData.empty()) {
+        return 0;
+    }
+
+    const std::string& data = _writeData.front();
+
+    long bytes = ::write(_fd, &data[_dataPos], data.size() - _dataPos);
 
     if (bytes > 0) {
         _dataPos += bytes;
 
-        if (_dataPos >= _dataSize) {
-            Log.debug() << "Socket::write [" << _fd << "]: " << _dataPos << "/" << _dataSize << " bytes" << Log.endl;
-            clear();
+        if (_dataPos >= data.size()) {
+            Log.debug() << "Socket::write [" << _fd << "]: " << _dataPos << "/" << data.size() << " bytes" << Log.endl;
+            _dataPos = 0;
+            _writeData.pop_front();
         }
     }
 
