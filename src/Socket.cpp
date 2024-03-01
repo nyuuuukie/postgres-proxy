@@ -99,7 +99,7 @@ int Socket::resolveHostname(const std::string& host, struct sockaddr_in* resAddr
 int Socket::connect(const std::string& host, int port) {
     sockaddr_in addr = {};
     if (resolveHostname(host, &addr) < 0) {
-        Log.error() << "Server::connectClient:: cannot resolve hostname" << Log.endl;
+        Log.error() << "Socket::connect: cannot resolve hostname" << Log.endl;
         return -1;
     }
 
