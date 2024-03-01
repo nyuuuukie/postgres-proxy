@@ -3,7 +3,7 @@
 #include <list>
 #include <mutex>
 #include "Event.hpp"
-
+#include "Log.hpp"
 class EventQueue {
     mutable std::recursive_mutex _m_operationLock;
 
@@ -18,7 +18,7 @@ public:
         _m_operationLock.unlock();
     }
 
-    void push(Event e) {
+    void push_back(Event e) {
         std::lock_guard<std::recursive_mutex> lk(_m_operationLock);
         _queue.push_back(e);
     }
