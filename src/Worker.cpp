@@ -9,10 +9,10 @@ Event pullEvent(void) {
 
         if (event.type != Event::Type::NONE && event.client) {
             // Only one thread will be working with a client
-            if (event.client->processing) {
+            if (event.client->processing.load()) {
                 Log.debug() << "Client already processing" << Log.endl;
-                event = {};
-            } else if (!event.client->connected) {
+                event = {};    
+            } else if (!event.client->connected.load()) {
                 Log.debug() << "Client not exist or disconnected" << Log.endl;
                 event = {};
             } else {
@@ -26,14 +26,10 @@ Event pullEvent(void) {
 }
 
 void handleEvent(Event event) {
-    if (event.type == Event::Type::READ_REQUEST) {
-        event.client->readRequest();
-    } else if (event.type == Event::Type::PASS_REQUEST) {
-        event.client->passRequest();
-    } else if (event.type == Event::Type::READ_RESPONSE) {
-        event.client->readResponse();
-    } else if (event.type == Event::Type::PASS_RESPONSE) {
-        event.client->passResponse();
+    if (event.type == Event::Type::PARSE_REQUEST) {
+        event.client->parseRequest();
+    } else if (event.type == Event::Type::PARSE_RESPONSE) {
+        event.client->parseResponse();
     } else {
         Log.error() << "Unknown event " << Log.endl;
     }

@@ -28,12 +28,12 @@ Socket& Client::getBackSocket(void) {
 // Connects new client to the back server
 int Client::connect(const std::string& host, int port) {
     if (_backSock.socket() < 0) {
-        Log.error() << "Server::connectClient:: cannot create socket" << Log.endl;
+        Log.error() << "Client::connect: cannot create socket" << Log.endl;
         return -1;
     }
 
     if (_backSock.connect(host, port) < 0) {
-        Log.error() << "Server::connectClient:: cannot connect" << Log.endl;
+        Log.error() << "Client::connect:: failed" << Log.endl;
         return -1;
     }
 
@@ -61,122 +61,109 @@ Message* Client::pullMessage(MessageList& list) {
     return msg;
 }
 
-void Client::logMessage(const Message* msg) const {
-    if (Args::logAllMessages) {
-        queryLog.print() << *msg << queryLog.endl;
-    } else {
-        // Print query SQL requests
-        if (msg->getId() == 'Q') {
-            queryLog.print() << &msg->getData()[5] << queryLog.endl;
-        }
-    }
-}
-
-// Parses a message and returns amount of bytes that were processed
-int Client::parse(MessageList& list, Socket& socket) {
-    const std::string& data = socket.getRemainder();
-    if (data.size() == 0) {
-        return 0;
-    }
-
-    Message* msg = pullMessage(list);
-    if (msg == nullptr) {
-        return 0;
-    }
-
-    const int parsedBytes = msg->parse(data);
-    if (msg->ready()) {
-        logMessage(msg);
-    }
-
-    list.push(msg);
-
-    Log.debug() << "Client::parse [" << socket.getFd() << "]: " << parsedBytes << " bytes" << Log.endl;
-    return parsedBytes;
-}
 
 // Reads request\response and parses as much as possible.
-void Client::read(MessageList& list, Socket& socket) {
-    if (socket.read() == 0) {
-        Log.debug() << "Client::end of read, disconnect" << Log.endl;
-        connected = false;
-        return;
+void Client::read(Socket& s1, Socket& s2) {
+
+    {
+        std::scoped_lock<std::recursive_mutex> l(s1.getLock());
+
+        const int bytes = s1.read();
+        if (bytes == 0) {
+            Log.debug() << "Disconnect client" << Log.endl;
+            connected = false;
+            return ;
+        } else if (bytes < 0) {
+            return ;
+        }
+
+        // Pass data to the other socket
+        s2.addWriteData(s1.getLastReadData());
     }
 
-    int bytes = 0;
+    // Add parsing event with data
+    if (&s1 == &_frontSock) {
+        Globals::eventQueue.push_back({ this, Event::Type::PARSE_REQUEST });
+    } else {
+        Globals::eventQueue.push_back({ this, Event::Type::PARSE_RESPONSE });
+    }
+
+}
+
+void Client::pollinHandler(int fd) {
+
+    if (fd == _frontSock.getFd()) {
+        Log.debug() << "Client:: [" << fd << "]: READ_REQUEST" << Log.endl;
+        read(_frontSock, _backSock);
+    
+    } else if (fd == _backSock.getFd()) {
+        Log.debug() << "Client:: [" << fd << "]: READ_RESPONSE" << Log.endl;
+        read(_backSock, _frontSock);
+    }
+}
+
+void Client::polloutHandler(int fd) {
+
+    if (fd == _frontSock.getFd() && _frontSock.readyToWrite()) {
+        Log.debug() << "Client:: [" << fd << "]: PASS_RESPONSE" << Log.endl;
+        _frontSock.write();
+
+    } else if (fd == _backSock.getFd() && _backSock.readyToWrite()) {
+        Log.debug() << "Client:: [" << fd << "]: PASS_REQUEST" << Log.endl;
+        _backSock.write();
+    }
+}
+
+void Client::parseRequest(void) {
+    parse(_requests, _frontSock);
+}
+
+void Client::parseResponse(void) {
+    parse(_responses, _backSock);
+}
+
+void Client::parse(MessageList &list, Socket &sock) {
+    const int fd = sock.getFd();
+
+    // Log.debug() << "Client::parse [" << fd << "]: " << Log.endl;
     do {
-        bytes = parse(list, socket);
-
-        // Delete bytes that were parsed
-        socket.removeRemainderBytes(bytes);
-    } while (bytes);
-}
-
-// Passing ready request to the backend server,
-// or ready response to the client.
-void Client::pass(MessageList& list, Socket& socket) {
-    Message* msg = nullptr;
-
-    list.lock();
-    if (list.size() > 0 && list.front()->ready()) {
-        msg = list.pop_front();
-    }
-    list.unlock();
-
-    if (msg != nullptr) {
-        socket.setData(msg->getData());
-        socket.write();
-
-        delete msg;
-    }
-}
-
-void Client::addReadEvent(int fd) {
-    using Type = Event::Type;
-
-    if (fd == _frontSock.getFd()) {
-        Log.debug() << "Client:: [" << fd << "]: READ_REQUEST event added" << Log.endl;
-        Globals::eventQueue.push({this, Type::READ_REQUEST});
-
-    } else if (fd == _backSock.getFd()) {
-        Log.debug() << "Client:: [" << fd << "]: READ_RESPONSE event added" << Log.endl;
-        Globals::eventQueue.push({this, Type::READ_RESPONSE});
-    }
-}
-
-void Client::addPassEvent(int fd) {
-    using Type = Event::Type;
-
-    if (fd == _frontSock.getFd()) {
-        _responses.lock();
-        if (_responses.size() > 0 && _responses.front()->ready()) {
-            Log.debug() << "Client:: [" << fd << "]: PASS_RESPONSE event added" << Log.endl;
-            Globals::eventQueue.push({this, Type::PASS_RESPONSE});
+        if (sock.getReadDataSize() == 0) {
+            return ;
         }
-        _responses.unlock();
 
-    } else if (fd == _backSock.getFd()) {
-        _requests.lock();
-        if (_requests.size() > 0 && _requests.front()->ready()) {
-            Log.debug() << "Client:: [" << fd << "]: PASS_REQUEST event added" << Log.endl;
-            Globals::eventQueue.push({this, Type::PASS_REQUEST});
+        std::string data = sock.getFirstReadData();     
+      
+        // Log.debug() << "Client:: parse size " << data.size() << Log.endl;
+        if (data.size() == 0) {
+            break ;
         }
-        _requests.unlock();
-    }
-}
+    
+        for (std::size_t pos = 0, bytes = 0; pos < data.size(); pos += bytes) {
+            Message* msg = pullMessage(list);
+            if (msg == nullptr) {
+                return;
+            }
 
-void Client::readRequest(void) {
-    read(_requests, _frontSock);
-}
+            // Log.debug() << "Client:: parse " << data.size() - pos << " " << pos << Log.endl;
+            bytes = msg->parse(data, data.size() - pos, pos);
+            if (bytes == 0) {
+                break;
+            }
+        
+            if (msg->ready()) {
+                msg->log();
+                // Log.debug() << "Message is ready" << Log.endl;
 
-void Client::passRequest(void) {
-    pass(_requests, _backSock);
-}
+                // Messages could be stored instead
+                delete msg;
+            } else {
+                list.push(msg);
+            }
 
-void Client::readResponse(void) {
-    read(_responses, _backSock);
-}
+            Log.debug() << "Client::parse [" << fd << "]: " << bytes << " bytes" << Log.endl;
+        }
 
-void Client::passResponse(void) {
-    pass(_responses, _frontSock);
+        sock.removeFirstReadData();
+        
+    } while (sock.getReadDataSize() > 0);
 }

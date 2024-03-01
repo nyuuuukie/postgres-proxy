@@ -40,7 +40,6 @@ void sigintHandler(int) {
 }
 
 void Server::startupInfo(void) {
-    Log.info() << "Server is starting on " << Args::proxyHost << ":" << Args::proxyPort << Log.endl;
     Log.info() << "Proxying to " << Args::targetHost << ":" << Args::targetPort << Log.endl;
     Log.info() << "Log level: " << Args::loglvl << Log.endl;
     Log.info() << "Log directory: " << Args::logdir << Log.endl;
@@ -207,7 +206,7 @@ void Server::pollin(int fd) {
         return;
     }
 
-    client->addReadEvent(fd);
+    client->pollinHandler(fd);
 }
 
 void Server::pollout(int fd) {
@@ -216,7 +215,7 @@ void Server::pollout(int fd) {
         return;
     }
 
-    client->addPassEvent(fd);
+    client->polloutHandler(fd);
 }
 
 void Server::pollhup(int fd) {
@@ -224,7 +223,7 @@ void Server::pollhup(int fd) {
 
     Client* client = _clients[fd];
     if (client == nullptr) {
-        return;
+        return ;
     }
 
     client->connected = false;
@@ -273,6 +272,10 @@ void Server::deleteClients(void) {
         if (client && !client->connected && !client->processing) {
             deleteClients.insert(client);
         }
+    }
+
+    if (deleteClients.size() == 0) {
+        return ;
     }
 
     // Remove all clients requests from event queue
