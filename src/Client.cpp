@@ -106,11 +106,15 @@ void Client::polloutHandler(int fd) {
 
     if (fd == _frontSock.getFd() && _frontSock.readyToWrite()) {
         Log.debug() << "Client:: [" << fd << "]: PASS_RESPONSE" << Log.endl;
-        _frontSock.write();
+        if (_frontSock.write() < 0) {
+            connected = false;
+        }
 
     } else if (fd == _backSock.getFd() && _backSock.readyToWrite()) {
         Log.debug() << "Client:: [" << fd << "]: PASS_REQUEST" << Log.endl;
-        _backSock.write();
+        if (_backSock.write() < 0) {
+            connected = false;
+        }
     }
 }
 
