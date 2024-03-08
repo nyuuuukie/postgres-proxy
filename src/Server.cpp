@@ -46,7 +46,11 @@ void Server::startupInfo(void) {
 
 // Describes the server's main cycle
 void Server::start(void) {
+
     signal(SIGINT, sigintHandler);
+
+    // Prevents program crush when write tries to send data to a closed socket
+    signal(SIGPIPE, SIG_IGN);
 
     if (initListenSocket() < 0) {
         stop();
