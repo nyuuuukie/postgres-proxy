@@ -189,6 +189,11 @@ int Socket::write(void) {
             _dataPos = 0;
             _writeData.pop_front();
         }
+    } else if (bytes < 0) {
+        // EAGAIN and EWOULDBLOCK are normal cases for non-blocking sockets
+        if (_nonblocking && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            return 0;
+        }
     }
 
     return bytes;
